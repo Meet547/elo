@@ -53,6 +53,12 @@ jobs:
       - run: npm run test:google-auth
       - run: npm run test:session-resume
       - run: npm run test:leaderboard
+      - run: npm run test:ranked-ready
+      - run: npm run test:ranked-liveness
+      - run: npm run test:deadline-worker
+      - run: npm run test:command-idempotency
+      - run: npm run test:command-crash
+      - run: npm run test:ranked-command-pipeline
       - run: npm run test:ranked-integrity
       - run: npm run test:settlement-crash
       - run: npm run smoke:production

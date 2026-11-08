@@ -11,5 +11,8 @@ if (!/^postgres(?:ql)?:\/\//.test(process.env.DATABASE_URL) || !/^postgres(?:ql)
 const migrate = spawnSync(process.execPath, [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'], {stdio:'inherit',env:process.env});
 if (migrate.status !== 0) process.exit(migrate.status || 1);
 const child=spawn(process.execPath,[require.resolve('next/dist/bin/next'),'start','backend/.app','--hostname','0.0.0.0','--port',process.env.PORT || '4000'],{stdio:'inherit',env:process.env});
-for (const signal of ['SIGTERM','SIGINT']) process.on(signal,()=>child.kill(signal));
-child.on('exit',code=>process.exit(code || 0));
+const worker=spawn(process.execPath,['scripts/deadline-worker.mjs'],{stdio:'inherit',env:process.env});
+let stopping=false;
+for (const signal of ['SIGTERM','SIGINT']) process.on(signal,()=>{stopping=true;child.kill(signal);worker.kill(signal);});
+worker.on('exit',code=>{if(!stopping){console.error(JSON.stringify({event:'deadline_worker_stopped'}));child.kill('SIGTERM');process.exit(code||1);}});
+child.on('exit',code=>{stopping=true;worker.kill('SIGTERM');process.exit(code||0);});

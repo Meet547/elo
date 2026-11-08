@@ -31,6 +31,7 @@ model Player {
   lastSeen    DateTime           @default(now())
   results     Session[]
   matchSeats  MatchParticipant[]
+  commandReceipts CommandReceipt[]
   authSessions AuthSession[]
   identities ExternalIdentity[]
   legacySessionsRevoked Boolean @default(false)
@@ -67,6 +68,7 @@ model Session {
 
 model LiveRoom {
   code      String   @id
+  nextDeadlineAt DateTime?
   revision  Int      @default(0)
   matchId   String?  @unique
   match     Match?   @relation(fields: [matchId], references: [id])
@@ -74,6 +76,7 @@ model LiveRoom {
   expiresAt DateTime
 
   @@index([expiresAt])
+  @@index([nextDeadlineAt])
 }
 
 model RankedSeat {
@@ -113,6 +116,7 @@ model Match {
   version      Int                @default(0)
   createdAt    DateTime           @default(now())
   updatedAt    DateTime           @updatedAt
+  readyDeadlineAt DateTime?
   startedAt    DateTime?
   finishedAt   DateTime?
   room         LiveRoom?
@@ -128,6 +132,7 @@ model MatchParticipant {
   matchId        String
   playerId       String
   seat           Int
+  lastSeenAt DateTime @default(now())
   ratingSnapshot Json
   match          Match  @relation(fields: [matchId], references: [id])
   player         Player @relation(fields: [playerId], references: [id])
@@ -193,4 +198,17 @@ model RateWindow {
   count Int
   resetAt DateTime
   @@index([resetAt])
+}
+
+model CommandReceipt {
+  actorId String
+  actor Player @relation(fields:[actorId],references:[id],onDelete:Cascade)
+  scope String @db.VarChar(80)
+  key String @db.Uuid
+  requestHash String @db.Char(64)
+  response Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@id([actorId,scope,key])
+  @@index([expiresAt])
 }

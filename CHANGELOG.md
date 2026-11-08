@@ -50,3 +50,11 @@
 - Persisted atomic account/IP mutation limits across restarts using hashed keys; public ladder reads remain database read-only.
 - Added owner-only export and explicit profile closure, with credential revocation and retained integrity history; active games prevent closure.
 - Enforced provider verification and claimed names inside matchmaking, with separate pools using the existing 12-session provisional boundary.
+
+### WS6 — lifecycle and command recovery
+
+- Added card-free 15-second ready checks, decline/timeout voids and queue-priority restoration.
+- Added persisted presence, three-miss/60-second forfeits, both-absent void precedence and reconnect protection.
+- Started an authenticated loopback deadline worker with backend startup and bounded TTL cleanup on the free web service.
+- Added atomic game-command receipts, actor/payload key binding, quota-safe replay and persistent browser pending intent keys.
+- Added measured server-clock countdowns, forfeit/void presentation and process-kill/drop/truncation/replay regressions.

@@ -43,6 +43,8 @@ A staging rollout needs a current approved export, empty target, preserved secre
 
 Verify returning profiles across sleeping-host errors and backend restart; two-browser room actions and private-card boundaries; exactly-once ranked settlement and replay rejection; Google linking preserving the old player ID; cross-device restoration; individual logout and logout-all; migration readiness and backup restore. Do not treat the successful isolated fixtures as a live Google/Neon/Render acceptance run.
 
-Google/Neon/email/Sentry accounts and staging are not yet configured. Optional email magic links, underage registration/consent launch surfaces, deadline worker, durable realtime and other remaining workstreams must be finished or explicitly deferred before a broader release.
+Google/Neon/email/Sentry accounts and staging are not yet configured. Optional email magic links, underage registration/consent launch surfaces, durable realtime and other remaining workstreams must be finished or explicitly deferred before a broader release.
 
 References: [Render Blueprint fields](https://render.com/docs/blueprint-spec), [Render health checks](https://render.com/docs/health-checks), [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
+
+Backend startup now includes a deadline worker child process. Do not create a paid worker for the prototype. The internal endpoint is loopback-authenticated and is not available through the browser bridge. Free-service sleep still interrupts processing until wake. Game API clients and backend must be rolled out together because game mutation POSTs require Idempotency-Key. See workstreams/WS6.md.

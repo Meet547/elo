@@ -1,0 +1,15 @@
+import assert from 'node:assert/strict';
+import {newRankedTable,advanceLiveTable,liveStandings} from '../src/lib/poker/live-table';
+const players=[{id:'a',name:'A',rating:1200},{id:'b',name:'B',rating:1200}];
+const absent=newRankedTable(players[0],players[1],0);
+assert(advanceLiveTable(absent,30*60_000));
+assert.equal(absent.status,'closed','F6: both absent for 30 minutes must void in one worker cycle');
+const offline=newRankedTable(players[0],players[1],0);
+Object.assign(offline.ranked!,{lastSeen:[0,60_001]});
+assert(advanceLiveTable(offline,60_001));assert.equal(offline.status,'finished');
+assert.equal(liveStandings(offline).find(seat=>seat.id==='a')?.place,2);
+const missed=newRankedTable(players[0],players[1],100_000);
+Object.assign(missed.ranked!,{missed:[3,0],lastSeen:[100_000,100_000]});
+assert(advanceLiveTable(missed,100_000));assert.equal(missed.status,'finished');
+assert.equal(liveStandings(missed).find(seat=>seat.id==='b')?.place,1);
+console.log('PASS — both-absent void precedence, single offline forfeit and three missed decisions');

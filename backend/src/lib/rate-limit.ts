@@ -1,5 +1,6 @@
 import { createHmac } from "node:crypto";
 import { db } from "./db";
+import {inTransaction,type DatabaseClient} from "./unit-of-work";
 import type { NextRequest } from "next/server";
 
 interface Window {
@@ -28,13 +29,14 @@ export async function rateLimit(
   max: number,
   windowMs: number,
   actor?: string,
+  client:DatabaseClient=db,
 ): Promise<{ ok: boolean; retryAfter: number }> {
   const now = Date.now();
   if (req.method !== "GET" || bucket === "auth:google") {
     const secret = process.env.SESSION_SECRET;
     if (!secret || secret.length < 16) throw new Error("Stable session secret is required for durable mutation limits.");
     const scopes = [`ip:${clientKey(req)}`, ...(actor ? [`account:${actor}`] : [])];
-    const results = await db.$transaction(async tx => {
+    const results = await inTransaction(client,async tx => {
       const rows: { count: number; resetAt: Date }[] = [];
       for (const scope of scopes) {
         const key = createHmac("sha256", secret).update(`${bucket}:${scope}`).digest("hex");

@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import {postGameCommand} from "@/lib/game-command";
 import { useRouter } from "next/navigation";
 import { useEffect, useState, type ReactNode } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -17,6 +18,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { CardSlot, FanHand, PlayingCard } from "@/components/felt/playing-card";
 import { ShuffleFX } from "@/components/felt/shuffle";
 import { useFelt } from "@/store/game";
+import { serverClockOffset, secondsToDeadline } from "@/lib/poker/server-clock";
 import { HUMAN_TURN_MS } from "@/lib/poker/turn-timing";
 import { verifyDeck } from "@/lib/poker/cards";
 import { boardCardDelay, holeCardDelay, isRunout } from "@/lib/poker/deal-timing";
@@ -66,7 +68,7 @@ function LiveLobby() {
     setBusy(true);
     setError("");
     try {
-      const response = await fetch("/api/live", { method: "POST" });
+      const response = await postGameCommand("/api/live", {}, {owner:useFelt.getState().profile?.id});
       const data = await response.json();
       if (!response.ok) throw new Error(data.error ?? "Could not create a room.");
       router.push(`/live/${data.room.code}`);
@@ -137,6 +139,8 @@ function LiveLobby() {
 }
 
 function LiveRoom({ code }: { code: string }) {
+  const router=useRouter();
+  const [clockOffset, setClockOffset] = useState(0);
   const [room, setRoom] = useState<LiveSnapshot | null>(null);
   const [failure, setFailure] = useState("");
   const [actionError, setActionError] = useState("");
@@ -146,6 +150,10 @@ function LiveRoom({ code }: { code: string }) {
   const [copied, setCopied] = useState(false);
   const compact = useCompactTable();
   const compactGame = compact && room?.status === "playing" && !failure;
+
+  useEffect(()=>{
+    if(room?.status==='closed'&&room.ranked?.proposal&&!room.game)router.replace('/ranked');
+  },[room,router]);
 
   useEffect(() => {
     if (room?.ranked && room.status === "finished") void useFelt.getState().refreshLadder();
@@ -158,11 +166,13 @@ function LiveRoom({ code }: { code: string }) {
     const accept = (value: LiveSnapshot) => setRoom((current) => !current || value.revision >= current.revision ? value : current);
     void (async () => {
       try {
+        const sentAt = Date.now();
         const response = await fetch(url, { signal: controller.signal, cache: "no-store" });
         const data = await response.json();
         if (!response.ok) throw new Error(data.error ?? "Could not open the room.");
         if (controller.signal.aborted) return;
         setFailure("");
+        if (Number.isFinite(data.room.serverNow)) setClockOffset(serverClockOffset(data.room.serverNow, sentAt, Date.now()));
         accept(data.room);
         if (data.room.status === "closed" || data.room.status === "finished") return;
         stream = new EventSource(`${url}/events`);
@@ -189,10 +199,7 @@ function LiveRoom({ code }: { code: string }) {
     setActionError("");
     setBusy(true);
     try {
-      const response = await fetch(`/api/live/${encodeURIComponent(code)}`, {
-        method: "POST", headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ revision: room.revision, command }),
-      });
+      const response = await postGameCommand(`/api/live/${encodeURIComponent(code)}`, { revision: room.revision, command }, {owner:useFelt.getState().profile?.id});
       const data = await response.json();
       if (data.room) setRoom((current) => !current || data.room.revision >= current.revision ? data.room : current);
       if (!response.ok) setActionError(data.error ?? "Could not send your move.");
@@ -239,7 +246,7 @@ function LiveRoom({ code }: { code: string }) {
               <p className="label">{room.ranked ? "Ranked Hold’em · 10 hands" : `Private Hold’em · ${room.code}`}</p>
               <h1 className="mt-1 font-display text-4xl sm:text-5xl">{room.status === "waiting" ? "The waiting room" : room.status === "closed" ? "Room closed" : room.ranked ? "Ranked match" : "Live table"}</h1>
             </div>
-            {room.status === "waiting" && (
+            {room.status === "waiting" && !room.ranked && (
               <TactileButton variant="paper" className="h-11" onClick={async () => {
                 try {
                   await navigator.clipboard.writeText(window.location.href);
@@ -261,8 +268,11 @@ function LiveRoom({ code }: { code: string }) {
               </span>
             </div>
           )}
+          {room.ranked?.outcome?.kind === 'void' && <p role="status" className="mb-4 text-sm text-ink-soft">Match voided. Ratings are unchanged.</p>}
           {!compactGame && !connected && room.status === "playing" && <p role="status" className="mb-2 text-sm text-ink-soft">Reconnecting to the live table…</p>}
-          {room.status === "waiting" ? (
+          {room.status === "waiting" && room.ranked?.proposal ? (
+            <RankedReady room={room} busy={busy} send={send} clockOffset={clockOffset} />
+          ) : room.status === "waiting" ? (
             <section className="elo-panel p-5 sm:p-7">
               <div className="flex items-center gap-2 text-sm text-ink-soft"><Users size={18} aria-hidden /> {room.seats.length} of {LIVE_CAPACITY} seats claimed</div>
               <ul className="mt-4 grid grid-cols-2 gap-2 lg:grid-cols-3">
@@ -283,7 +293,7 @@ function LiveRoom({ code }: { code: string }) {
               </div>
             </section>
           ) : room.game ? (
-            <LiveFelt room={room} compact={compact} busy={busy} send={send} connected={connected} error={actionError} />
+            <LiveFelt room={room} clockOffset={clockOffset} compact={compact} busy={busy} send={send} connected={connected} error={actionError} />
           ) : <Link href="/live" className="elo-link">Create or join another room</Link>}
           {!compactGame && actionError && <p role="alert" className="mt-3 text-sm text-carmine-deep">{actionError}</p>}
         </>
@@ -298,6 +308,7 @@ function LiveReceipt({ room }: { room: LiveSnapshot }) {
   const before = rating?.before ?? room.seats[room.me].rating;
   return <Receipt
     mode={room.ranked ? "ranked" : "private"}
+    outcomeNote={room.ranked?.outcome?.kind === 'forfeit' ? (me.place === 1 ? 'Won by forfeit' : 'Lost by forfeit') : undefined}
     reference={room.code}
     player={me.name}
     seat={room.me + 1}
@@ -323,8 +334,26 @@ function LiveReceipt({ room }: { room: LiveSnapshot }) {
   />;
 }
 
-function LiveFelt({ room, compact, busy, send, connected, error }: {
+function RankedReady({room,busy,send,clockOffset}:{room:LiveSnapshot;busy:boolean;send:(command:LiveCommand)=>Promise<void>;clockOffset:number}) {
+  const [now,setNow]=useState(()=>Date.now());
+  useEffect(()=>{const timer=setInterval(()=>setNow(Date.now()),250);return()=>clearInterval(timer);},[]);
+  const proposal=room.ranked!.proposal!;
+  const seconds=secondsToDeadline(proposal.deadline,now,clockOffset,15);
+  const accepted=proposal.accepted[room.me];
+  return <section className="elo-panel space-y-4 p-5 sm:p-7" aria-label="Ranked ready check">
+    <h2 className="font-display text-3xl">Confirm your ranked match</h2>
+    <p className="text-sm text-ink-soft">Confirm within <span className="tnum">{seconds}</span> seconds. Cards are dealt when both players confirm.</p>
+    <ul className="space-y-2">{room.seats.map((seat,index)=><li key={index}>{seat.name} · {proposal.accepted[index]?'Confirmed':'Waiting'}</li>)}</ul>
+    <div className="flex flex-wrap gap-3">
+      <TactileButton variant="accent" disabled={busy||accepted||seconds===0} onClick={()=>void send({type:'ready',accept:true})}>{accepted?'Confirmed':'I’m ready'}</TactileButton>
+      <TactileButton disabled={busy||seconds===0} onClick={()=>void send({type:'ready',accept:false})}>Decline</TactileButton>
+    </div>
+  </section>;
+}
+
+function LiveFelt({ room, compact, busy, send, connected, error, clockOffset }: {
   room: LiveSnapshot;
+  clockOffset: number;
   compact: boolean;
   busy: boolean;
   send: (command: LiveCommand) => Promise<void>;
@@ -347,7 +376,7 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
   }, [game.handNo]);
   const dealing = game.phase === "betting" && game.handNo !== dealtHand && game.board.length === 0;
   const runout = isRunout(game.log);
-  const deadline = room.nextAt ? Math.max(0, Math.min(HUMAN_TURN_MS / 1000, Math.ceil((room.nextAt - now) / 1000))) : 0;
+  const deadline = room.nextAt ? secondsToDeadline(room.nextAt, now, clockOffset, HUMAN_TURN_MS / 1000) : 0;
   const active = room.seats[game.toAct];
   const award = game.awards[0];
   const winner = award ? room.seats[award.seatIdx] : null;

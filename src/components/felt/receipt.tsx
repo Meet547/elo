@@ -27,6 +27,7 @@ interface ReceiptStanding {
 
 export interface ReceiptProps {
   mode: "practice" | "ranked" | "private";
+  outcomeNote?: string;
   reference: string;
   player: string;
   seat: number;
@@ -77,7 +78,7 @@ function Barcode({ reference }: { reference: string }) {
 export function Receipt({
   mode, reference, player, seat, seats, hands, finalStack, net, place, biggestPot, bestHand, fieldAvg,
   ratingBefore, ratingAfter, rated = mode === "ranked", rankBefore, rankAfter, settledAt, standings,
-  onHome, actions,
+  onHome, actions, outcomeNote,
 }: ReceiptProps) {
   const reduceMotion = useReducedMotion();
   const [printed, setPrinted] = useState(false);
@@ -85,7 +86,7 @@ export function Receipt({
   const ranked = mode === "ranked";
   const delta = ratingAfter - ratingBefore;
   const title = ranked ? "Ranked match" : "Cash out";
-  const subtitle = ranked ? `${hands} hands · Head-to-head` : mode === "private" ? "Private table" : "Practice session";
+  const subtitle = outcomeNote ?? (ranked ? `${hands} hands · Head-to-head` : mode === "private" ? "Private table" : "Practice session");
   const finish = place === 0 ? "Draw" : `${place}${place === 1 ? "st" : place === 2 ? "nd" : place === 3 ? "rd" : "th"} of ${seats}`;
   const status = complete ? ranked ? "Match complete" : "Cash out complete" : "Printing your receipt";
 

@@ -1,4 +1,5 @@
 export const RANKED_HANDS = 10;
+export const RANKED_READY_MS = 15_000;
 export const RANKED_MIN_RANGE = 75;
 export const RANKED_MAX_RANGE = 350;
 export const RANKED_PRESENCE_MS = 45_000;

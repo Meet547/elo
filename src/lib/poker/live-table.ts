@@ -10,7 +10,7 @@ import {
 import type { HandValue } from "./evaluator";
 import { shortHandLabel } from "./hand-label";
 import { HUMAN_TURN_MS } from "./turn-timing";
-import { RANKED_HANDS } from "./ranked-match";
+import { RANKED_HANDS, RANKED_READY_MS } from "./ranked-match";
 
 export const LIVE_CLOCK_MS = HUMAN_TURN_MS;
 export const LIVE_CAPACITY = 6;
@@ -36,6 +36,11 @@ export interface LiveTable {
   eliminated: number[];
   ranked?: {
     matchId?: string;
+    proposal?: { deadline: number; accepted: boolean[]; declinedBy?: number };
+    cancelReason?: string;
+    lastSeen?: number[];
+    missed?: number[];
+    outcome?: {kind:"void";reason:string}|{kind:"forfeit";reason:string;loser:number};
     scores: number[];
     completedHands: number;
     ratings?: { before: number; after: number }[];
@@ -44,7 +49,8 @@ export interface LiveTable {
 
 export type LiveCommand =
   | { type: "join" | "leave" | "start" }
-  | { type: "act"; action: BotAction };
+  | { type: "act"; action: BotAction }
+  | { type: "ready"; accept: boolean };
 
 type Identity = Pick<LivePlayer, "id" | "name" | "rating">;
 
@@ -58,8 +64,17 @@ export function newLiveTable(host: Identity): LiveTable {
 export function newRankedTable(a: Identity, b: Identity, now: number): LiveTable {
   const table = newLiveTable(a);
   table.players.push(seatPlayer(b));
-  table.ranked = { scores: [0, 0], completedHands: 0 };
+  table.ranked = { scores: [0, 0], completedHands: 0, lastSeen: [now, now], missed: [0, 0] };
   startTable(table, now);
+  return table;
+}
+
+/** Production matchmaking proposes a room without dealing any private cards. */
+export function newProposedRankedTable(a: Identity, b: Identity, now: number): LiveTable {
+  const table = newLiveTable(a);
+  table.players.push(seatPlayer(b));
+  table.ranked = { scores: [0, 0], completedHands: 0, lastSeen: [now, now], missed: [0, 0], proposal: { deadline: now + RANKED_READY_MS, accepted: [false, false] } };
+  table.nextAt = table.ranked.proposal!.deadline;
   return table;
 }
 
@@ -108,15 +123,46 @@ function scheduleDecision(table: LiveTable, now: number, dealing = false) {
   table.nextAt = now + (game.phase === "showdown" ? 4_000 : 2_200);
 }
 
+/** Both-absent void takes precedence over any single-player forfeit. */
+function terminateUnresponsive(table:LiveTable,now:number):boolean {
+  if(table.status!=="playing"||!table.ranked||!table.game)return false;
+  const ranked=table.ranked;
+  const absent=(ranked.lastSeen??[now,now]).map(last=>now-last>=60_000);
+  const missed=ranked.missed??[0,0];
+  const losers=absent.map((value,idx)=>value||missed[idx]>=3);
+  if(!losers.some(Boolean))return false;
+  if(absent.every(Boolean)||losers.every(Boolean)){
+    ranked.outcome={kind:"void",reason:"both-absent"};table.status="closed";
+  }else{
+    ranked.outcome={kind:"forfeit",reason:absent.some(Boolean)?"offline":"missed-decisions",loser:losers.findIndex(Boolean)};
+    // Include a fully completed, already-awarded hand once; refund an interrupted hand.
+    if(table.game.phase!=="betting"&&ranked.completedHands<table.game.handNo){
+      for(const seat of table.game.seats)ranked.scores[seat.idx]+=seat.stack-START_STACK;
+      ranked.completedHands++;
+    }
+    table.status="finished";
+  }
+  for(const seat of table.game.seats){seat.stack+=seat.totalBet;seat.totalBet=0;seat.bet=0;}
+  table.game.collected=0;table.game.potTotal=0;table.game.phase="session-end";
+  table.nextAt=null;return true;
+}
+
 /** Advance expired decisions even if the player closed the tab. */
 export function advanceLiveTable(table: LiveTable, now: number): boolean {
+  if (table.status === "waiting" && table.ranked?.proposal && now >= table.ranked.proposal.deadline) {
+    table.status = "closed"; table.nextAt = null; table.ranked.cancelReason = "ready-timeout";
+    return true;
+  }
+  if (terminateUnresponsive(table,now)) return true;
   const game = table.game;
   if (table.status !== "playing" || !game || table.nextAt === null || now < table.nextAt) return false;
 
   if (game.phase === "betting") {
+    if(table.ranked){table.ranked.missed??=[0,0];table.ranked.missed[game.toAct]++;}
     const action = legalActions(game, game.toAct).canCheck ? "check" : "fold";
     applyAction(game, game.toAct, { type: action });
     scheduleDecision(table, now);
+    terminateUnresponsive(table,now);
     return true;
   }
 
@@ -149,6 +195,22 @@ export function advanceLiveTable(table: LiveTable, now: number): boolean {
 export function applyLiveCommand(table: LiveTable, player: Identity, command: LiveCommand, now: number): string | null {
   if (table.status === "finished" || table.status === "closed") return "This room is finished.";
   const seat = table.players.findIndex((p) => p.id === player.id);
+  if(table.ranked&&seat>=0){table.ranked.lastSeen??=[now,now];table.ranked.lastSeen[seat]=now;}
+  if (table.ranked?.proposal && table.status === "waiting") {
+    if (seat < 0) return "This proposal belongs to its two matched players.";
+    if (command.type !== "ready") return "Confirm or decline this ranked proposal.";
+    if (now >= table.ranked.proposal.deadline) return "The ready check expired.";
+    if (!command.accept) {
+      table.ranked.proposal.declinedBy = seat;
+      table.ranked.cancelReason = "declined";
+      table.status = "closed"; table.nextAt = null;
+    } else {
+      if (table.ranked.proposal.accepted[seat]) return "You already confirmed.";
+      table.ranked.proposal.accepted[seat] = true;
+      if (table.ranked.proposal.accepted.every(Boolean)) startTable(table, now);
+    }
+    return null;
+  }
   if (command.type === "join") {
     if (seat >= 0) return null;
     if (table.status !== "waiting") return "This game has already started.";
@@ -186,6 +248,7 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
       action.to < legal.minRaiseTo || action.to > legal.maxRaiseTo))
   ) return "That move is not available.";
 
+  if(table.ranked){table.ranked.missed??=[0,0];table.ranked.missed[seat]=0;}
   applyAction(game, seat, action);
   scheduleDecision(table, now);
   return null;
@@ -194,8 +257,8 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
 export function liveStandings(table: LiveTable) {
   if (!table.game || table.status !== "finished") return [];
   const ranked = table.ranked;
-  const draw = ranked?.scores[0] === ranked?.scores[1];
-  const order = ranked ? [0, 1].sort((a, b) => ranked.scores[b] - ranked.scores[a]) : [
+  const draw = !ranked?.outcome && ranked?.scores[0] === ranked?.scores[1];
+  const order = ranked?.outcome?.kind === "forfeit" ? [1-ranked.outcome.loser,ranked.outcome.loser] : ranked ? [0, 1].sort((a, b) => ranked.scores[b] - ranked.scores[a]) : [
     table.game.seats.find((seat) => !seat.out)!.idx,
     ...table.eliminated.slice().reverse(),
   ];
@@ -212,8 +275,8 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
   const g = table.game;
   const revealed = g && g.phase !== "betting";
   return {
-    code, revision, me, status: table.status,
-    ranked: table.ranked ? { ...table.ranked, hands: RANKED_HANDS } : null,
+    serverNow: Date.now(), code, revision, me, status: table.status,
+    ranked: table.ranked ? { matchId:table.ranked.matchId,scores:table.ranked.scores,completedHands:table.ranked.completedHands,ratings:table.ranked.ratings,proposal:table.ranked.proposal,cancelReason:table.ranked.cancelReason,outcome:table.ranked.outcome,hands:RANKED_HANDS } : null,
     host: table.players.findIndex((p) => p.id === table.host),
     nextAt: table.nextAt,
     seats: table.players.map((p, idx) => {

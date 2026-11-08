@@ -63,3 +63,11 @@ Canonical new names use NFKC, collapsed whitespace and lowercase uniqueness with
 ## D016 — owner export and profile closure
 
 Export is owner-only and excludes session credentials/other players' private cards. Explicit closure revokes access, removes provider contact data and pseudonymizes the current profile while retaining match/settlement history and historical snapshots for integrity. It cannot run during an active game. This is not represented as complete regulatory erasure; retention/legal policy remains deferred. Mutation rate limits persist hashed account/IP windows across restarts; public read-only ladder queries do not write limit records.
+
+## D017 — ready checks and free-host lifecycle processing
+
+Ranked proposals deal no cards until both players confirm within 15 seconds. Decline/expiry voids without ratings and preserves the other eligible player's queue priority. Both-absent void precedes single-player forfeit; 60 seconds offline or three consecutive missed decisions forfeits under the existing win/loss rating formula. Reconnect checks the elapsed absence before updating presence. An API-side Node worker processes persisted deadlines while the free host is running and catches up on wake; no paid worker or continuous availability guarantee is introduced.
+
+## D018 — atomic game-command acknowledgements
+
+A UUIDv4 key is bound to authenticated actor, scope and normalized intent. Game effects, quotas and the stored response commit together. Same-key/different-body requests conflict; known retries do not consume another quota. Action receipt retention is seven days and transient queue-poll retention is one minute. Browser pending keys are owner-scoped and survive unknown results/manual retry/same-tab reload; a fully received JSON response is required before acknowledging the intent. Identity-provider and session workflows retain their own security semantics.

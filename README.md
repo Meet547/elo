@@ -92,3 +92,9 @@ The smoke test uses a temporary database and two local production servers; it
 never touches your development database or calls Ollama Cloud.
 
 Existing SQLite history is preserved through the guarded [migration rehearsal](docs/MIGRATION_REHEARSAL.md), not by applying Postgres migrations to SQLite. Google configuration and live acceptance are described in [AUTH_SETUP.md](docs/AUTH_SETUP.md). Provider accounts, live export, staging/cutover and the remaining workstreams are still pending.
+
+Ranked requires a verified provider and claimed unique name. Both opponents confirm a 15-second ready check before any deal. Three consecutive missed decisions or 60 seconds offline forfeits; both absent voids with unchanged ratings. Countdown display adjusts to server time.
+
+Production backend startup includes the deadline worker. For local development with the API already running on 4000, use a third shell with the backend variables exported and run `PORT=4000 npm run worker`. Do not start an extra manual worker in the production web service. Free-host sleep still suspends processing; see [WS6](docs/workstreams/WS6.md).
+
+Game mutation POSTs require a UUIDv4 `Idempotency-Key`; the frontend helper manages keys and retrying unknown responses. See WS6 for receipt retention and exact transaction boundaries.

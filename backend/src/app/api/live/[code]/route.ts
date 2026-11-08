@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbEnabled } from "@/lib/db";
 import { commandLiveRoom, readLiveRoom, roomCode } from "@/lib/live-rooms";
-import { rateLimit, tooMany } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
+import {runGameCommand,commandHttp,commandLimited} from "../../../../lib/command-receipts";
 import { sessionPlayer } from "@/lib/session";
 
 const action = z.discriminatedUnion("type", [
@@ -13,6 +14,7 @@ const payload = z.object({
   revision: z.int().nonnegative(),
   command: z.discriminatedUnion("type", [
     z.object({ type: z.literal("join") }), z.object({ type: z.literal("leave") }),
+    z.object({ type: z.literal("ready"), accept: z.boolean() }),
     z.object({ type: z.literal("start") }), z.object({ type: z.literal("act"), action }),
   ]),
 });
@@ -37,10 +39,12 @@ export async function POST(req: NextRequest, { params }: Context) {
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);
   if (!dbEnabled) return json({ error: "Live rooms need a database connection." }, 503);
-  const limit = await rateLimit(req, "live:act", 90, 60_000, player);
-  if (!limit.ok) return tooMany(limit.retryAfter);
-  const body = payload.safeParse(await req.json().catch(() => null));
-  if (!body.success) return json({ error: "Invalid table command." }, 400);
-  const { status, ...result } = await commandLiveRoom(code, player, body.data.revision, body.data.command);
-  return json(result, status);
+  const body=payload.safeParse(await req.json().catch(()=>null));
+  if(!body.success)return json({error:'Invalid table command.'},400);
+  try{return commandHttp(await runGameCommand(player,`room:${code}`,req.headers.get('idempotency-key'),body.data,async tx=>{
+    const limit=await rateLimit(req,'live:act',90,60_000,player,tx);
+    if(!limit.ok)return commandLimited(limit.retryAfter);
+    const {status,...result}=await commandLiveRoom(code,player,body.data.revision,body.data.command,tx);
+    return {status,body:result};
+  }));}catch{return json({error:'Could not apply the command. Retry with the same command key.'},503);}
 }

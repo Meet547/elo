@@ -1,5 +1,6 @@
 "use client";
 
+import { postGameCommand } from "@/lib/game-command";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Trophy } from "lucide-react";
@@ -12,10 +13,8 @@ import { Reconnect } from "./Reconnect";
 import { Onboard } from "./Onboard";
 
 async function queueRequest(command: "join" | "poll" | "cancel", signal?: AbortSignal): Promise<RankedQueueStatus> {
-  const response = await fetch("/api/ranked", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ command }), signal,
-  });
+  if (signal?.aborted) throw new DOMException('Aborted','AbortError');
+  const response = await postGameCommand("/api/ranked", { command }, { signal, owner:useFelt.getState().profile?.id });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? "Could not reach the ranked queue.");
   return data;
@@ -103,7 +102,8 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
           <h1 className="mt-2 font-display text-4xl leading-none sm:text-5xl lg:text-6xl">Find your next rival.</h1>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-[#e3e7d9] sm:text-base">
             One opponent near your rating. Ten hands, fresh $1,500 stacks each hand.
-            The player with the most total chip profit wins.
+            The player with the most total chip profit wins. Confirm within 15 seconds before the deal.
+            Three missed decisions or 60 seconds offline forfeits the match; both players absent voids it.
           </p>
         </section>
         <section className="elo-panel mt-5 p-5 sm:p-7">

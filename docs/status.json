@@ -63,10 +63,21 @@
       "commit": "3c9cc0a"
     },
     "F6": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS6",
-      "evidence": "backend/src/lib/live-rooms.ts:98; backend/src/lib/ranked-queue.ts:27; one ten-minute-late advance completes zero hands"
+      "evidence": "backend/src/lib/live-rooms.ts:98; backend/src/lib/ranked-queue.ts:27; one ten-minute-late advance completes zero hands",
+      "tests": [
+        "scripts/test-ranked-ready.ts",
+        "scripts/test-ranked-liveness.ts",
+        "scripts/test-deadline-worker.ts",
+        "scripts/test-command-idempotency.ts",
+        "scripts/test-command-crash.ts",
+        "scripts/test-ranked-command-pipeline.ts",
+        "scripts/test-game-command.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation"
     },
     "F7": {
       "status": "open",
@@ -164,7 +175,8 @@
         "scripts/test-durable-rate-limit.ts",
         "scripts/test-ranked-eligibility.ts"
       ],
-      "reason": "Canonical unique claims, durable mutation account/IP limits, verified service-boundary ranked access and separate placements implemented; multilingual moderation remains limited and provider setup pending"
+      "reason": "Canonical unique claims, durable mutation account/IP limits, verified service-boundary ranked access and separate placements implemented; multilingual moderation remains limited and provider setup pending",
+      "commit": "a3bb2f4"
     },
     "A5": {
       "status": "partial",

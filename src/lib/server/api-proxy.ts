@@ -15,7 +15,7 @@ export async function forwardApi(request: Request, path: string[]) {
   const target = new URL(`/api/${path.join('/')}`, origin);
   target.search = incoming.search;
   const headers = new Headers();
-  for (const key of ['content-type', 'cookie', 'accept', 'last-event-id']) {
+  for (const key of ['content-type', 'cookie', 'accept', 'last-event-id', 'idempotency-key']) {
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }

@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import {randomUUID} from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -31,7 +32,7 @@ async function ready(url) {
  throw new Error(`Not ready: ${url}\n${logs}`);
 }
 async function request(path,{cookie,...options}={}) {
- const response=await fetch(`${frontend}${path}`,{...options,headers:{'Content-Type':'application/json',Origin:frontend,...(cookie?{Cookie:cookie}:{}),...options.headers}});
+ const response=await fetch(`${frontend}${path}`,{...options,headers:{'Content-Type':'application/json','Idempotency-Key':randomUUID(),Origin:frontend,...(cookie?{Cookie:cookie}:{}),...options.headers}});
  return {response,data:await response.json(),cookie:response.headers.get('set-cookie')?.split(';')[0]};
 }
 try {
@@ -56,6 +57,13 @@ try {
  assert.equal(events.status,200);assert(events.headers.get('content-type').includes('text/event-stream'));
  const reader=events.body.getReader();assert(new TextDecoder().decode((await reader.read()).value).includes('data:'));
  await reader.cancel();controller.abort();
+ const workerDb=new PrismaClient();
+ // No room GET or SSE remains open: only the launched worker may advance this deadline.
+ await new Promise(resolve=>setTimeout(resolve,Math.max(0,started.data.room.nextAt-Date.now()+1500)));
+ const advanced=await workerDb.liveRoom.findUniqueOrThrow({where:{code}});
+ assert(advanced.revision>started.data.room.revision,'the actual worker must advance an untouched room without browser requests');
+ await workerDb.$disconnect();
+ assert.equal((await request('/api/internal/tick',{method:'POST',cookie:host.cookie,body:'{}'})).response.status,403,'browser proxy cannot invoke the internal worker');
  const denied=await request('/api/ranked',{method:'POST',cookie:host.cookie,body:JSON.stringify({command:'join'})});
  assert.equal(denied.response.status,403,'guests cannot queue for ranked');
  const fixtureDb=new PrismaClient();
@@ -73,7 +81,7 @@ try {
  await ready(`${backend}/api/health`);
  assert.equal((await request('/api/profile',{cookie:host.cookie})).data.player.name,'Smoke host','identity persists after backend restart');
  assert.equal((await request(`/api/live/${code}`,{cookie:host.cookie})).data.room.code,code,'live state persists after backend restart');
- console.log('PASS — restart persistence, two production services, migrations, proxy gate, profile cookies, private room create/join/start, card privacy, SSE, ranked queue/cancel, bot authentication and CSRF');
+ console.log('PASS — restart persistence, two production services, migrations, proxy gate, profile cookies, private room create/join/start, card privacy, SSE, autonomous deadline worker, ranked queue/cancel, bot authentication and CSRF');
 } catch(error) { console.error(logs);throw error; }
 finally {
  for(const child of children)child.kill('SIGTERM');

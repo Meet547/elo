@@ -19,7 +19,7 @@ export function readLegacy(filename){
   if(source.prepare('PRAGMA integrity_check').get().integrity_check!=='ok')throw new Error('SQLite integrity check failed.');
   const players=read('Player').map(({isRival,...row})=>({...row,isSimulated:Boolean(isRival),createdAt:date(row.createdAt),lastSeen:date(row.lastSeen)}));
   const sessions=read('Session').map(row=>({...row,mode:'LEGACY',createdAt:date(row.createdAt)}));
-  const rooms=read('LiveRoom').map(row=>({...row,expiresAt:date(row.expiresAt)}));
+  const rooms=read('LiveRoom').map(row=>{const state=JSON.parse(row.state);return {...row,expiresAt:date(row.expiresAt),nextDeadlineAt:state.nextAt==null?null:date(state.nextAt)};});
   const queue=read('RankedSeat').map(row=>({...row,joinedAt:date(row.joinedAt),seenAt:date(row.seenAt)}));
   // New ranked settlement requires a reviewed, frozen match snapshot; never invent it.
   if(rooms.some(row=>JSON.parse(row.state).ranked))throw new Error('Legacy ranked room requires explicit match/participant mapping before import. Source is unchanged.');
@@ -31,7 +31,7 @@ export function readLegacy(filename){
 const fields={
  players:['id','name','rating','rd','volatility','rated','peak','hands','cashes','netChips','biggestPot','streak','isSimulated','createdAt','lastSeen'],
  sessions:['id','playerId','hands','buyIn','finalStack','net','place','seats','ratingBefore','ratingAfter','biggestPot','potsWon','bestHand','exit','createdAt','mode'],
- rooms:['code','revision','state','expiresAt'],queue:['playerId','rating','joinedAt','seenAt','roomCode'],
+ rooms:['code','revision','state','expiresAt','nextDeadlineAt'],queue:['playerId','rating','joinedAt','seenAt','roomCode'],
 };
 export function summary(data){
  return Object.fromEntries(Object.entries(fields).map(([kind,keys])=>{
@@ -44,7 +44,7 @@ export async function targetSummary(client){
 }
 export async function importLegacy(client,data){
  return client.$transaction(async tx=>{
-  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count()]);
+  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count(),tx.commandReceipt.count()]);
   if(counts.some(Boolean))throw new Error('Import requires an empty application database. No existing data will be overwritten.');
   if(data.players.length)await tx.player.createMany({data:data.players});
   if(data.sessions.length)await tx.session.createMany({data:data.sessions});

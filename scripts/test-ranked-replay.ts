@@ -19,6 +19,12 @@ try {
   if (matched?.status !== 'matched') throw new Error('Fixture did not match');
   const code = matched.code;
   let room = (await readLiveRoom(code, players[0].id))!;
+  assert.equal(room.game,null);
+  for (const player of players) {
+    const current = (await readLiveRoom(code,player.id))!;
+    assert.equal((await commandLiveRoom(code,player.id,current.revision,{type:'ready',accept:true})).status,200);
+  }
+  room = (await readLiveRoom(code,players[0].id))!;
   const hostSeat = room.me;
   for (let step = 0; room.status !== 'finished' && step < 100; step++) {
     if (room.game!.phase === 'betting') {

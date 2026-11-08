@@ -22,6 +22,7 @@ export async function DELETE(req:NextRequest){
   const rooms=await tx.liveRoom.findMany({where:{expiresAt:{gt:new Date()}},select:{state:true}});
   if(active||rooms.some(row=>{const table=JSON.parse(row.state);return table.status==='playing'&&table.players.some((player:{id:string})=>player.id===id);}))return false;
   await tx.rankedSeat.deleteMany({where:{playerId:id}});
+  await tx.commandReceipt.deleteMany({where:{actorId:id}});
   await tx.authSession.deleteMany({where:{playerId:id}});
   await tx.oAuthAttempt.deleteMany({where:{playerId:id}});
   await tx.externalIdentity.deleteMany({where:{playerId:id}});

@@ -33,7 +33,14 @@
     "test:profile-names": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-profile-names.ts",
     "test:durable-rate-limit": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-durable-rate-limit.ts",
     "test:account-management": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-account-management.ts",
-    "test:ranked-eligibility": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-eligibility.ts"
+    "test:ranked-eligibility": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-eligibility.ts",
+    "worker": "node scripts/deadline-worker.mjs",
+    "test:ranked-ready": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-ready.ts",
+    "test:ranked-liveness": "bun scripts/test-ranked-liveness.ts && bun scripts/test-server-clock.ts",
+    "test:deadline-worker": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-deadline-worker.ts",
+    "test:command-idempotency": "bun scripts/test-game-command.ts && node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-command-idempotency.ts",
+    "test:command-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-command-crash.ts",
+    "test:ranked-command-pipeline": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-command-pipeline.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

@@ -3,19 +3,32 @@ import "server-only";
 import { PROVISIONAL_SESSIONS } from "@/lib/rating";
 import { Prisma } from "@prisma/client";
 import { db } from "./db";
-import { roomRecord } from "./live-rooms";
-import { createActiveRankedMatch } from "./match-state";
-import { newRankedTable } from "@/lib/poker/live-table";
+import {inTransaction,ownsTransaction,type DatabaseClient} from "./unit-of-work";
+import { roomRecord, commandLiveRoom } from "./live-rooms";
+import { createProposedRankedMatch } from "./match-state";
+import { newProposedRankedTable } from "@/lib/poker/live-table";
 import { chooseRankedOpponent, rankedRange, RANKED_MAX_RANGE, RANKED_PRESENCE_MS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
 
 export class RankedEligibilityError extends Error {}
 
 export type QueueCommand = "join" | "poll" | "cancel";
 
-export async function updateRankedQueue(playerId: string, command: QueueCommand): Promise<RankedQueueStatus | null> {
+export async function updateRankedQueue(playerId: string, command: QueueCommand, client:DatabaseClient=db): Promise<RankedQueueStatus | null> {
+  // Cancel a proposal through the same revision-checked ready command as the room UI.
+  if (command === "cancel") {
+    const assigned = await client.rankedSeat.findUnique({where:{playerId}});
+    const row = assigned?.roomCode ? await client.liveRoom.findUnique({where:{code:assigned.roomCode}}) : null;
+    if (row) {
+      const table = JSON.parse(row.state);
+      if (table.status === "waiting" && table.ranked?.proposal) {
+        const result = await commandLiveRoom(row.code,playerId,row.revision,{type:"ready",accept:false},client);
+        if (result.status === 200) return {status:"idle",rating:assigned!.rating};
+      }
+    }
+  }
   for (let attempt = 0; ; attempt++) {
     try {
-      return await db.$transaction(async (tx) => {
+      return await inTransaction(client,async (tx) => {
         const now = new Date();
         const cutoff = new Date(now.getTime() - RANKED_PRESENCE_MS);
 
@@ -66,8 +79,8 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
             select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true, rankedPlacements: true, nameKey: true, identities: { select: { provider: true } } },
           });
           if (opponent && opponent.identities.length && opponent.nameKey && (opponent.rankedPlacements < PROVISIONAL_SESSIONS ? "PLACEMENT" : "ESTABLISHED") === poolName && chooseRankedOpponent(waiting, [{ ...candidate, rating: opponent.rating }], now.getTime())) {
-            const matchId = await createActiveRankedMatch(tx, [player, opponent], now);
-            const table = newRankedTable(player, opponent, now.getTime());
+            const matchId = await createProposedRankedMatch(tx, [player, opponent], now);
+            const table = newProposedRankedTable(player, opponent, now.getTime());
             table.ranked!.matchId = matchId;
             const room = await tx.liveRoom.create({ data: roomRecord(table, matchId) });
             await tx.rankedSeat.update({ where: { playerId }, data: { roomCode: room.code } });
@@ -81,6 +94,7 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         };
       }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
+      if(!ownsTransaction(client))throw error;
       if (attempt >= 2 || !(error instanceof Prisma.PrismaClientKnownRequestError) ||
         !["P1008", "P2002", "P2028", "P2034"].includes(error.code)) throw error;
       await new Promise((resolve) => setTimeout(resolve, 40 * (attempt + 1)));

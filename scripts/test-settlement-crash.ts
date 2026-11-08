@@ -4,7 +4,7 @@ import { spawn } from 'node:child_process';
 import { once } from 'node:events';
 import { Client } from 'pg';
 import { db } from '../backend/src/lib/db';
-import { createActiveRankedMatch } from '../backend/src/lib/match-state';
+import { createActiveRankedMatch } from './fixtures/active-ranked-match';
 import { readLiveRoom, roomRecord } from '../backend/src/lib/live-rooms';
 import { advanceLiveTable, applyLiveCommand, newRankedTable } from '../src/lib/poker/live-table';
 import { isolatedDatabaseUrl } from './lib/test-database.mjs';
