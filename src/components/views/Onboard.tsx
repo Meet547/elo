@@ -56,9 +56,10 @@ export function Onboard({ invite = false }: { invite?: boolean }) {
               <input id="name" value={name} onChange={(event) => setName(event.target.value)} maxLength={18}
                 placeholder="Your table name" required aria-describedby={error ? "profile-error" : undefined} className="elo-input flex-1" />
               <TactileButton type="submit" size="lg" variant="accent" disabled={!name.trim() || busy}>
-                {busy ? "Joining…" : "Claim seat"}
+                {busy ? "Connecting…" : "Claim seat"}
               </TactileButton>
             </div>
+            {busy && <p role="status" className="mt-3 text-sm text-ink-soft">Connecting to the room. Free hosting may take a minute or two to wake up.</p>}
             {error && <p id="profile-error" role="alert" className="mt-3 text-sm text-carmine-deep">{error}</p>}
           </form>
           {ladder.length > 0 && (

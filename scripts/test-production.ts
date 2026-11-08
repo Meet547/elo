@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { waitForRoomReady } from '../src/lib/room-ready';
 import { requestBotDecision } from '../src/lib/poker/bot-request';
 import { forwardApi } from '../src/lib/server/api-proxy';
 import { botViewSchema, cloudDecision, legalBotAction } from '../backend/src/lib/ollama';
@@ -23,6 +24,17 @@ try {
   assert.equal((await forwardApi(new Request('https://frontend.example/api/profile',{method:'POST',headers:{origin:'https://evil.example'}}),['profile'])).status,403);
   assert.equal((await forwardApi(new Request('https://frontend.example/api/x'),['..'])).status,400);
   assert.equal((await forwardApi(new Request('http://localhost:3000/api/profile', {method:'POST',headers:{host:'frontend.example','x-forwarded-proto':'https',origin:'https://frontend.example'},body:'{}'}),['profile'])).status,200,'public origin survives the framework internal hostname');
+  let probes=0;
+  globalThis.fetch=(async (url: string | URL | Request, init?:RequestInit)=>{
+    assert.equal(String(url),'/api/health'); assert.notEqual(init?.method,'POST');
+    probes++;
+    return probes === 1 ? new Response('<html>host waking</html>',{status:502}) : probes === 2 ? Response.json({ok:false},{status:503}) : Response.json({ok:true});
+  }) as typeof fetch;
+  await waitForRoomReady({timeoutMs:1000,pauseMs:1});assert.equal(probes,3,'a sleeping host recovers before a profile mutation');
+  globalThis.fetch=(async ()=>Response.json({error:'Backend is not configured.'},{status:503})) as typeof fetch;
+  await assert.rejects(waitForRoomReady({timeoutMs:1000,pauseMs:1}),/has not been configured/);
+  globalThis.fetch=(async ()=>Response.json({ok:false},{status:502})) as typeof fetch;
+  await assert.rejects(waitForRoomReady({timeoutMs:15,pauseMs:1}),/try again in a minute/);
   const state=newSession(Array.from({length:2},(_,i)=>({id:String(i),name:'Bot',rating:1200,isHuman:i===0})));
   startHand(state);
   const view=botView(state,state.toAct);

@@ -22,7 +22,7 @@ export async function forwardApi(request: Request, path: string[]) {
   headers.set('x-elo-proxy-secret', secret);
   // Only Vercel's platform-provided client address is trusted in production.
   headers.set('x-elo-client-ip', request.headers.get('x-vercel-forwarded-for')?.split(',')[0]?.trim() || 'proxy');
-  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(28_000)]);
+  const signal = AbortSignal.any([request.signal, AbortSignal.timeout(path.length === 1 && path[0] === 'health' ? 8_000 : 28_000)]);
   try {
     if (Number(request.headers.get('content-length') || 0) > 65536) return Response.json({ error: 'Request too large.' }, { status: 413 });
     const body = ['GET', 'HEAD'].includes(request.method) ? undefined : await request.arrayBuffer();

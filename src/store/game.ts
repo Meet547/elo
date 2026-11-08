@@ -7,6 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { create } from "zustand";
+import { waitForRoomReady } from "@/lib/room-ready";
 import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
 import { requestBotDecision } from "@/lib/poker/bot-request";
 import { shortHandLabel } from "@/lib/poker/hand-label";
@@ -324,6 +325,7 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   },
 
   async createProfile(name) {
+    await waitForRoomReady();
     const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -332,7 +334,7 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
     if (!res.ok) {
       if (res.status === 429) throw new Error("Too many attempts. Wait a moment and try again.");
       if (res.status === 400) throw new Error("Enter a valid table name.");
-      throw new Error("The poker room is unavailable. Try again shortly.");
+      throw new Error("The room connection was interrupted. Please try Claim Seat again.");
     }
     const { player } = await res.json();
     set({ token: player.id, profile: player, view: "lobby" });
