@@ -19,7 +19,6 @@ jobs:
     env:
       DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
       DIRECT_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
-      ELO_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
       TEST_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
     steps:
       - uses: actions/checkout@v4
@@ -39,6 +38,8 @@ jobs:
       - run: npm run build:backend
       - run: npm run test:harness-isolation
       - run: npm run test:legacy-import
+        env:
+          ELO_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
       - run: npm run test:readiness
       - run: npm run test:integration
       - run: npm run test:account-sessions
