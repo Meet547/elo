@@ -24,7 +24,10 @@
     "test:leaderboard": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-leaderboard.ts",
     "test:session-resume": "bun scripts/test-session-resume.ts",
     "test:account-sessions": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-account-sessions.ts",
-    "test:google-auth": "bun scripts/test-auth-proxy.ts && node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-google-auth.ts"
+    "test:google-auth": "bun scripts/test-auth-proxy.ts && node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-google-auth.ts",
+    "test:harness-isolation": "node scripts/with-test-postgres.mjs node scripts/test-harness-isolation.mjs",
+    "test:legacy-import": "node scripts/with-test-postgres.mjs node scripts/test-legacy-import.mjs",
+    "test:readiness": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-readiness.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

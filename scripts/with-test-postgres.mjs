@@ -1,5 +1,6 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { randomBytes } from 'node:crypto';
+import { Client } from 'pg';
 import { createRequire } from 'node:module';
 import { isolatedDatabaseUrl } from './lib/test-database.mjs';
 const require = createRequire(import.meta.url);
@@ -7,6 +8,8 @@ const args = process.argv.slice(2);
 if (!args.length) throw new Error('Provide the test command after with-test-postgres.mjs.');
 let container;
 let running;
+let databaseAdmin;
+let ownedDatabase;
 function execute(command, argv, env) {
   return new Promise((resolve, reject) => {
     const child = spawn(command, argv, { env, stdio: 'inherit' });
@@ -37,9 +40,22 @@ try {
     if (!ready) throw new Error('Isolated Postgres did not become ready.');
   }
   url = isolatedDatabaseUrl(url);
-  const env = { ...process.env, DATABASE_URL: url, DIRECT_DATABASE_URL: url, TEST_DATABASE_URL: url, ELO_TEST_DATABASE: '1' };
+  // Shared CI services are infrastructure, never shared mutable test fixtures.
+  if (!container) {
+    databaseAdmin = new Client({ connectionString: url });
+    await databaseAdmin.connect();
+    ownedDatabase = `elo_test_run_${randomBytes(8).toString('hex')}`;
+    await databaseAdmin.query(`CREATE DATABASE "${ownedDatabase}"`);
+    const perRun = new URL(url); perRun.pathname = `/${ownedDatabase}`;
+    url = isolatedDatabaseUrl(perRun.toString());
+  }
+  const env = { ...process.env, DATABASE_URL: url, DIRECT_DATABASE_URL: url, TEST_DATABASE_URL: url, ELO_TEST_DATABASE: '1', ...(container ? {ELO_TEST_POSTGRES_CONTAINER:container} : {}) };
   await execute(process.execPath, [require.resolve('prisma/build/index.js'), 'migrate', 'deploy'], env);
   await execute(args[0], args.slice(1), env);
 } finally {
+  if (databaseAdmin) {
+    if (ownedDatabase) await databaseAdmin.query(`DROP DATABASE IF EXISTS "${ownedDatabase}" WITH (FORCE)`);
+    await databaseAdmin.end();
+  }
   if (container) spawnSync('docker', ['rm', '-f', container], { stdio: 'ignore' });
 }

@@ -47,3 +47,7 @@ Public ladder and activity exclude simulated personas; unranked activity remains
 ## D012 — revocable identity without resetting existing players
 
 New sessions use hashed opaque random credentials stored in Postgres. Legacy HMAC sessions remain accepted for migration until the owner revokes them. Google subject, rather than email/name, keys provider identity; guest upgrade preserves the current Player ID. Cross-account histories are never merged implicitly. Google OAuth is optional until configured, and fixture tests never contact Google or spend Cloud bot credits. Administrator access requires a verified provider identity and an explicit server-side environment allowlist. Email magic-link integration and public registration gates remain unfinished.
+
+## D013 — migration rehearsal is separate from live cutover
+
+Only loopback elo_test import targets are supported until live cutover is explicitly prepared. A read-only local SQLite backup is a rehearsal source, not evidence of current production completeness. Legacy history retains IDs and values and is classified LEGACY; unsupported ranked live-room mappings cause refusal rather than silent loss. Restore verification uses a fresh isolated database and matching Postgres tools. The free Render Blueprint has no persistent disk and automatic deploys are off while storage cutover remains pending.

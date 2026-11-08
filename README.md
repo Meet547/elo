@@ -13,12 +13,12 @@ src/store/                  Client practice game driver and interface state
 src/lib/poker/              Shared engine, evaluator, fairness and legal moves
 src/lib/server/             Vercel-to-Render streaming API proxy
 backend/src/app/api/        Render API endpoints
-backend/src/lib/            Database, signed sessions, rooms, queue, Ollama adapter
+backend/src/lib/            Database, revocable sessions, Google linking, rooms, queue, Ollama
 backend/src/proxy.ts        Authenticate calls from the Vercel API bridge
-prisma/                    Schema and versioned SQLite migrations
+prisma/                    Postgres schema/migrations and archived SQLite schema
 scripts/                   Build preparation, server startup and verification
 .github/workflows/ci.yml    Tests and both deployment builds
-render.yaml                 Render service and persistent disk blueprint
+render.yaml                 Free Render service with external Postgres configuration
 vercel.json                 Vercel build configuration
 ```
 
@@ -29,7 +29,7 @@ through the server-side bridge to Render. No Ollama key reaches browser code.
 
 ## Deploy
 
-Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Deploy Render first, then configure
+This hardening branch is not deployed and still has open workstreams in [docs/status.json](docs/status.json). Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for staging preparation. Configure Render first, then configure
 Vercel with its HTTPS origin and matching proxy secret. Set your own Ollama Cloud
 API key on Render. Hosts and paid services are not provisioned by a Git push.
 
@@ -41,10 +41,9 @@ Copy `.env.example` to `.env.local` and fill the proxy/session secrets and Ollam
 In a shell with these variables exported, initialize a development database:
 
 ```sh
-mkdir -p db
-export DATABASE_URL="file:$(pwd)/db/development.db"
-touch db/development.db
-bunx prisma migrate deploy
+export DATABASE_URL="postgresql://USER:PASSWORD@127.0.0.1:5432/elo_development"
+export DIRECT_DATABASE_URL="$DATABASE_URL"
+npm run db:deploy
 npm run dev:backend
 ```
 
@@ -78,8 +77,18 @@ npm run lint
 npm run test
 npm run build
 npm run build:backend
-node scripts/smoke-production.mjs
+npm run test:integration
+npm run test:account-sessions
+npm run test:google-auth
+npm run test:session-resume
+npm run test:leaderboard
+npm run test:ranked-integrity
+npm run test:settlement-crash
+npm run test:legacy-import
+npm run smoke:production
 ```
 
 The smoke test uses a temporary database and two local production servers; it
 never touches your development database or calls Ollama Cloud.
+
+Existing SQLite history is preserved through the guarded [migration rehearsal](docs/MIGRATION_REHEARSAL.md), not by applying Postgres migrations to SQLite. Google configuration and live acceptance are described in [AUTH_SETUP.md](docs/AUTH_SETUP.md). Provider accounts, live export, staging/cutover and the remaining workstreams are still pending.

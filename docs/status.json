@@ -31,7 +31,13 @@
       "owner": "Codex; owner for provider/export/staging access",
       "workstream": "WS4",
       "evidence": "backend/src/lib/db.ts:5; prisma/schema.prisma:6; live free-host configuration from review; persistent export still required",
-      "reason": "Postgres foundation verified locally; approved live export and provider deployment remain gated"
+      "reason": "Postgres migration, read-only local history import and fresh backup restore verified; Neon setup, current live export, any legacy ranked mapping and hosted cutover remain gated",
+      "tests": [
+        "scripts/test-legacy-import.mjs",
+        "scripts/test-harness-isolation.mjs",
+        "scripts/test-readiness.ts",
+        "scripts/smoke-production.mjs"
+      ]
     },
     "F4": {
       "status": "open",

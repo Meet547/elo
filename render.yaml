@@ -1,26 +1,29 @@
+# Free prototype backend. External managed Postgres is configured in the dashboard.
+# No paid disk or managed database is created by this Blueprint.
 services:
   - type: web
     name: elo-backend
     runtime: node
-    plan: starter
-    branch: Updated-frontend
+    plan: free
+    branch: main
+    autoDeployTrigger: 'off'
     buildCommand: npm ci --include=dev && npm run build:backend
     startCommand: npm run start:backend
     healthCheckPath: /api/health
     numInstances: 1
-    disk:
-      name: elo-data
-      mountPath: /var/data
-      sizeGB: 1
     envVars:
       - key: NODE_VERSION
         value: "22"
       - key: DATABASE_URL
-        value: file:/var/data/elo.db
+        sync: false
+      - key: DIRECT_DATABASE_URL
+        sync: false
+      - key: NEXT_PUBLIC_SITE_URL
+        sync: false
       - key: SESSION_SECRET
-        generateValue: true
+        sync: false
       - key: BACKEND_PROXY_SECRET
-        generateValue: true
+        sync: false
       - key: OLLAMA_API_KEY
         sync: false
       - key: OLLAMA_MODEL

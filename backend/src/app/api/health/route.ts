@@ -1,21 +1,21 @@
 import { NextResponse } from "next/server";
 import { db, dbEnabled } from "@/lib/db";
 
-// Liveness + database reachability for the load balancer. It answers with the
-// smallest possible body so a probe cannot be used to enumerate the ladder.
 export const dynamic = "force-dynamic";
-
 const NO_STORE = { "cache-control": "no-store" } as const;
+// Bump when a new application release requires another committed migration.
+const REQUIRED_SCHEMA = '20261108030000_identity';
 
+/** Readiness includes database reachability and the required committed schema. */
 export async function GET() {
-  if (!dbEnabled) {
-    return NextResponse.json({ ok: false, mode: "unavailable" }, { status: 503, headers: NO_STORE });
-  }
-
+  if (!dbEnabled) return NextResponse.json({ ok: false }, { status: 503, headers: NO_STORE });
   try {
-    await db.liveRoom.findFirst({ select: { code: true } });
-    await db.rankedSeat.findFirst({ select: { playerId: true } });
-    return NextResponse.json({ ok: true, mode: "sqlite" }, { headers: NO_STORE });
+    const migrations = await db.$queryRaw<{ migration_name: string; finished_at: Date | null; rolled_back_at: Date | null }[]>`
+      SELECT migration_name, finished_at, rolled_back_at FROM "_prisma_migrations"`;
+    const ready = migrations.some(row => row.migration_name === REQUIRED_SCHEMA && row.finished_at && !row.rolled_back_at)
+      && !migrations.some(row => !row.finished_at && !row.rolled_back_at);
+    if (!ready) return NextResponse.json({ ok: false }, { status: 503, headers: NO_STORE });
+    return NextResponse.json({ ok: true, mode: "postgresql" }, { headers: NO_STORE });
   } catch {
     return NextResponse.json({ ok: false }, { status: 503, headers: NO_STORE });
   }

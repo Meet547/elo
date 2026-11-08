@@ -26,3 +26,10 @@
 - Added Google authorization-code flow with PKCE, browser-bound single-use state, nonce and verified ID tokens; guest upgrades preserve player IDs and history.
 - Added verified administrator email allowlist, private account status, profile connection controls and same-origin OAuth redirects.
 - Added local signed-token/security-boundary and Postgres session/linking tests. Live provider setup, email recovery, account management and ranked verification gates remain pending.
+
+### WS4 — local migration and free-host preparation
+
+- Added private read-only SQLite backup, guarded import, count/hash validation and fresh Postgres restore rehearsal.
+- Rehearsed the approved local history copy: 47 players, 235 history rows and one private room preserved exactly.
+- Isolated shared-CI test commands into separate databases; added a regression for fixture leakage.
+- Split liveness/readiness and require a completed schema migration. Updated Render Blueprint for free external-Postgres hosting with automatic deployment off pending cutover.
