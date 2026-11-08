@@ -3,7 +3,7 @@ import { sessionPlayer } from '@/lib/session';
 import { rateLimit, tooMany } from '@/lib/rate-limit';
 import { botViewSchema, cloudDecision } from '@/lib/ollama';
 export async function POST(request: NextRequest) {
-  const player=sessionPlayer(request);
+  const player=await sessionPlayer(request);
   if (!player) return NextResponse.json({error:'Claim a profile first.'},{status:401});
   const limit=rateLimit(request,`bots:${player}`,90,60000);
   if (!limit.ok) return tooMany(limit.retryAfter);

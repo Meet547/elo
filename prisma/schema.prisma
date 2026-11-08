@@ -29,6 +29,10 @@ model Player {
   lastSeen    DateTime           @default(now())
   results     Session[]
   matchSeats  MatchParticipant[]
+  authSessions AuthSession[]
+  identities ExternalIdentity[]
+  legacySessionsRevoked Boolean @default(false)
+  deletedAt DateTime?
 }
 
 model Session {
@@ -143,4 +147,35 @@ model MatchTransition {
   createdAt DateTime   @default(now())
 
   @@index([matchId, createdAt])
+}
+
+model AuthSession {
+  tokenHash String @id
+  playerId String
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([playerId])
+  @@index([expiresAt])
+}
+
+model ExternalIdentity {
+  provider String
+  subject String
+  playerId String
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  email String
+  verifiedAt DateTime @default(now())
+  @@id([provider, subject])
+  @@unique([playerId, provider])
+}
+
+model OAuthAttempt {
+  stateHash String @id
+  browserHash String
+  nonce String
+  verifier String
+  playerId String?
+  expiresAt DateTime
+  @@index([expiresAt])
 }

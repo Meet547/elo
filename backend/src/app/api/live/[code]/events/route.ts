@@ -8,7 +8,7 @@ export const dynamic = "force-dynamic";
 export const maxDuration = 30;
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ code: string }> }) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return NextResponse.json({ error: "Sign in first." }, { status: 401 });
   const code = roomCode((await params).code);
   if (!code) return NextResponse.json({ error: "Room not found." }, { status: 404 });

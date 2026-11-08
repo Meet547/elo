@@ -43,3 +43,7 @@ The crash fixture holds a task-owned Postgres advisory lock through a test-only 
 ## D011 — Read-only real ladder and explicit provenance
 
 Public ladder and activity exclude simulated personas; unranked activity remains owner-private. The existing legacy simulation column is mapped to the explicit ORM property isSimulated, preserving data without a destructive rename. No GET endpoint seeds or drifts simulated ratings. An explicit native insert-on-conflict seed is safe to repeat/concurrently invoke and never resets existing persona data. Real player rank uses a deterministic rating/hands/id ordering and is fetched independently of the paginated ladder, including profile refresh.
+
+## D012 — revocable identity without resetting existing players
+
+New sessions use hashed opaque random credentials stored in Postgres. Legacy HMAC sessions remain accepted for migration until the owner revokes them. Google subject, rather than email/name, keys provider identity; guest upgrade preserves the current Player ID. Cross-account histories are never merged implicitly. Google OAuth is optional until configured, and fixture tests never contact Google or spend Cloud bot credits. Administrator access requires a verified provider identity and an explicit server-side environment allowlist. Email magic-link integration and public registration gates remain unfinished.

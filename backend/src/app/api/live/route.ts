@@ -5,7 +5,7 @@ import { rateLimit, tooMany } from "@/lib/rate-limit";
 import { sessionPlayer } from "@/lib/session";
 
 export async function POST(req: NextRequest) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return NextResponse.json({ error: "Claim an Elo profile first." }, { status: 401 });
   if (!dbEnabled) return NextResponse.json({ error: "Live rooms need a database connection." }, { status: 503 });
   const limit = rateLimit(req, `live:create:${player}`, 8, 60_000);

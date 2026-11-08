@@ -10,7 +10,7 @@ export const dynamic = 'force-dynamic';
 export async function GET(req: NextRequest) {
   const limit = rateLimit(req, 'leaderboard', 90, 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
-  const playerId = sessionPlayer(req);
+  const playerId = await sessionPlayer(req);
   const [players, me, wire] = await Promise.all([
     db.player.findMany({ where: { isSimulated: false }, orderBy: [{ rating: 'desc' }, { hands: 'desc' }, { id: 'asc' }], take: 60 }),
     playerId ? db.player.findUnique({ where: { id: playerId, isSimulated: false } }) : null,

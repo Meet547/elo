@@ -1,19 +1,11 @@
 // ---------------------------------------------------------------------------
-// Session identity.
-//
-// The player id is a cuid, not a credential. It is meaningful only when the
-// server has signed it, so it travels in an httpOnly cookie:
-//
-//     <playerId>.<expEpochSeconds>.<hmac-sha256 base64url>
-//
-// The cookie is unforgeable without SESSION_SECRET, it cannot be read by
-// client script, and every mutation route derives the actor from it instead of
-// trusting a body field. Setting SESSION_SECRET keeps sessions valid across
-// deploys; production refuses to sign sessions without it rather than
-// inventing an unstable or predictable signing key.
+// Session identity: new sessions use random opaque tokens stored only as hashes.
+// Legacy HMAC cookies are accepted for migration until their owner revokes them.
+// Player IDs and provider email addresses are never bearer credentials.
 // ---------------------------------------------------------------------------
 
-import { createHmac, timingSafeEqual } from "crypto";
+import { createHash, createHmac, randomBytes, timingSafeEqual } from "crypto";
+import { db } from "./db";
 import type { NextRequest } from "next/server";
 import type { NextResponse } from "next/server";
 
@@ -64,21 +56,46 @@ export function verifySession(raw: string | undefined | null, now = Date.now()):
   return playerId;
 }
 
-/** The authenticated player id for a request, or null. */
-export function sessionPlayer(req: NextRequest): string | null {
-  return verifySession(req.cookies.get(SESSION_COOKIE)?.value);
+const tokenHash = (token: string) => createHash("sha256").update(token).digest("hex");
+
+/** Opaque sessions can be revoked; legacy cookies retain identity until explicitly revoked. */
+export async function sessionPlayer(req: NextRequest): Promise<string | null> {
+  const raw = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!raw) return null;
+  if (raw.startsWith("v1.")) {
+    if (!/^v1\.[A-Za-z0-9_-]{43}$/.test(raw)) return null;
+    const record = await db.authSession.findUnique({ where: { tokenHash: tokenHash(raw) }, include: { player: true } });
+    return record && record.expiresAt.getTime() > Date.now() && !record.player.deletedAt && !record.player.isSimulated ? record.playerId : null;
+  }
+  const playerId = verifySession(raw);
+  if (!playerId) return null;
+  const player = await db.player.findUnique({ where: { id: playerId } });
+  return player && !player.legacySessionsRevoked && !player.deletedAt && !player.isSimulated ? playerId : null;
 }
 
-export function setSessionCookie(res: NextResponse, playerId: string): void {
-  res.cookies.set({
-    name: SESSION_COOKIE,
-    value: signSession(playerId),
-    httpOnly: true,
-    sameSite: "lax",
-    secure: process.env.NODE_ENV === "production",
-    path: "/",
-    maxAge: SESSION_MAX_AGE,
-  });
+export async function setSessionCookie(res: NextResponse, playerId: string): Promise<void> {
+  const value = `v1.${randomBytes(32).toString("base64url")}`;
+  await db.authSession.create({ data: { tokenHash: tokenHash(value), playerId, expiresAt: new Date(Date.now() + SESSION_MAX_AGE * 1000) } });
+  res.cookies.set({ name: SESSION_COOKIE, value, httpOnly: true, sameSite: "lax",
+    secure: process.env.NODE_ENV === "production", path: "/", maxAge: SESSION_MAX_AGE });
+}
+
+export async function revokePlayerSessions(playerId: string): Promise<void> {
+  await db.$transaction([
+    db.player.update({ where: { id: playerId }, data: { legacySessionsRevoked: true } }),
+    db.authSession.deleteMany({ where: { playerId } }),
+  ]);
+}
+
+export async function revokeRequestSession(req: NextRequest): Promise<void> {
+  const raw = req.cookies.get(SESSION_COOKIE)?.value;
+  if (!raw) return;
+  if (raw.startsWith("v1.")) await db.authSession.deleteMany({ where: { tokenHash: tokenHash(raw) } });
+  else {
+    const playerId = await sessionPlayer(req);
+    // Legacy cookies have no individual session ID; revoke all legacy cookies for the owner.
+    if (playerId) await db.player.update({ where: { id: playerId }, data: { legacySessionsRevoked: true } });
+  }
 }
 
 export function clearSessionCookie(res: NextResponse): void {

@@ -22,7 +22,7 @@ const json = (body: object, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function GET(req: NextRequest, { params }: Context) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return json({ error: "Claim an Elo profile first." }, 401);
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);
@@ -32,7 +32,7 @@ export async function GET(req: NextRequest, { params }: Context) {
 }
 
 export async function POST(req: NextRequest, { params }: Context) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return json({ error: "Claim an Elo profile first." }, 401);
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);

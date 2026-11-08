@@ -23,7 +23,8 @@
         "scripts/test-session-resume.ts",
         "scripts/test-leaderboard.ts"
       ],
-      "commitSubject": "fix(identity): preserve returning sessions through backend cold starts"
+      "commitSubject": "fix(identity): preserve returning sessions through backend cold starts",
+      "commit": "e98ff7e"
     },
     "F3": {
       "status": "partial",
@@ -132,16 +133,25 @@
       "evidence": "backend/src/app/api/profile/route.ts:36,57; IP creation limiter exists (8 per ten minutes), but no verification or unique names; guests can currently queue"
     },
     "A5": {
-      "status": "open",
+      "status": "partial",
       "owner": "Codex",
       "workstream": "WS3/WS11/WS12",
-      "evidence": "src/app and backend/src/app inventories; no admin auth/void/reversal/moderation API; Player schema has no role"
+      "evidence": "src/app and backend/src/app inventories; no admin auth/void/reversal/moderation API; Player schema has no role",
+      "tests": [
+        "scripts/test-google-auth.ts"
+      ],
+      "reason": "Verified provider admin allowlist implemented; admin operations and moderation remain pending"
     },
     "A6": {
-      "status": "open",
+      "status": "partial",
       "owner": "Codex",
       "workstream": "WS3/WS12",
-      "evidence": "backend/src/lib/session.ts:20,69; route inventory has no logout/revoke/delete/recovery; clear-cookie helper is not a workflow"
+      "evidence": "backend/src/lib/session.ts:20,69; route inventory has no logout/revoke/delete/recovery; clear-cookie helper is not a workflow",
+      "tests": [
+        "scripts/test-account-sessions.ts",
+        "scripts/test-google-auth.ts"
+      ],
+      "reason": "Google recovery and persistent logout/revocation verified locally; deletion, export and live provider setup remain pending"
     },
     "A7": {
       "status": "open",

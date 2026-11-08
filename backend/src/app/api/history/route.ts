@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const limit = rateLimit(req, "history", 60, 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
 
-  const playerId = sessionPlayer(req);
+  const playerId = await sessionPlayer(req);
   if (!playerId) return NextResponse.json({ error: "no session" }, { status: 401, headers: NO_STORE });
 
   const sessions = await db.session.findMany({

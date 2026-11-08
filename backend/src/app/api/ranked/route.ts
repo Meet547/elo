@@ -8,7 +8,7 @@ const json = (body: object, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function POST(req: NextRequest) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return json({ error: "Claim an Elo profile first." }, 401);
   if (!dbEnabled) return json({ error: "Ranked play needs a database connection." }, 503);
   const limit = rateLimit(req, `ranked:${player}`, 60, 60_000);

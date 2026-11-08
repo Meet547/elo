@@ -15,7 +15,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "demo mode", demo: true }, { status: 503, headers: NO_STORE });
   }
 
-  const playerId = sessionPlayer(req);
+  const playerId = await sessionPlayer(req);
   if (!playerId) return NextResponse.json({ error: "no session" }, { status: 401, headers: NO_STORE });
 
   const player = await db.player.findUnique({ where: { id: playerId, isSimulated: false } });
@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
 
   // A repeated claim with an existing signed cookie resumes its owner.
   // This also protects callers other than the current frontend from accidental identity replacement.
-  const existingId = sessionPlayer(req);
+  const existingId = await sessionPlayer(req);
   if (existingId) {
     const existing = await db.player.findUnique({ where: { id: existingId, isSimulated: false } });
     if (existing) return NextResponse.json({ player: { ...existing, rank: await realPlayerRank(db, existing), provenance: "REAL" } }, { headers: NO_STORE });
@@ -68,6 +68,6 @@ export async function POST(req: NextRequest) {
   });
 
   const res = NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
-  setSessionCookie(res, player.id);
+  await setSessionCookie(res, player.id);
   return res;
 }

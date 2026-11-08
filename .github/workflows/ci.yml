@@ -35,6 +35,8 @@ jobs:
       - run: npm run build
       - run: npm run build:backend
       - run: npm run test:integration
+      - run: npm run test:account-sessions
+      - run: npm run test:google-auth
       - run: npm run test:session-resume
       - run: npm run test:leaderboard
       - run: npm run test:ranked-integrity

@@ -6,6 +6,7 @@
 // what you won with, or who took your last chips and in which hand.
 // ---------------------------------------------------------------------------
 
+import { AccountAccess } from "./AccountAccess";
 import { useFelt, type SessionRow } from "@/store/game";
 import { RatingGraph, type GraphPoint } from "@/components/felt/chart";
 import { RollingNumber, Stamp, TactileButton } from "@/components/felt/kit";
@@ -276,6 +277,8 @@ export function ProfileView() {
           })
         )}
       </section>
+
+      <AccountAccess />
 
       <p className="mt-4 text-center font-mono text-[9px] uppercase text-ink-faint">
         every session is one glicko-2 period · all six seats rated at once

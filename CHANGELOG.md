@@ -19,3 +19,10 @@
 - Retry safe profile resume through sleeping-host failures; show a reconnect screen after timeout instead of treating the player as anonymous.
 - Coalesce duplicate boot requests and preserve the existing signed identity on repeated claims, in both client and server.
 - Added outage/recovery boundary and identity-preservation regression coverage. Provider-backed identity remains an open workstream.
+
+### WS3 — revocable sessions and Google integration
+
+- Added persistent opaque sessions, individual logout and logout-all with legacy-cookie revocation.
+- Added Google authorization-code flow with PKCE, browser-bound single-use state, nonce and verified ID tokens; guest upgrades preserve player IDs and history.
+- Added verified administrator email allowlist, private account status, profile connection controls and same-origin OAuth redirects.
+- Added local signed-token/security-boundary and Postgres session/linking tests. Live provider setup, email recovery, account management and ranked verification gates remain pending.
