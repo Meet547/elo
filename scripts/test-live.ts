@@ -39,7 +39,7 @@ assert(verifyDeck(result.game!.deckSeed!, result.game!.deckCommit).valid);
 assert.equal(advanceLiveTable(table, table.nextAt! - 1), false);
 assert.equal(advanceLiveTable(table, table.nextAt!), true);
 // A split pot starts the next hand immediately, so its posted blinds still count.
-const unsettled = game.phase === "betting" ? game.collected + game.seats.reduce((sum, seat) => sum + seat.bet, 0) : 0;
+const unsettled = table.status === "playing" ? game.collected + game.seats.reduce((sum, seat) => sum + seat.bet, 0) : 0;
 assert.equal(game.seats.reduce((total, seat) => total + seat.stack, 0) + unsettled, START_STACK * 2);
 if (table.status === "finished") {
   assert.equal(liveStandings(table)[0].stack, START_STACK * 2);
