@@ -5,7 +5,7 @@ import {isolatedDatabaseUrl} from './lib/test-database.mjs';
 assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);
 process.env.SESSION_SECRET=randomBytes(32).toString('hex');
 function hit(ip:string,bucket:string,actor:string){
- const child=spawnSync(process.execPath,['--conditions=react-server','scripts/fixtures/rate-limit-child.ts',ip,bucket,actor],{env:process.env,encoding:'utf8'});
+ const child=spawnSync(process.execPath,['--conditions=react-server','scripts/fixtures/rate-limit-child.ts',ip,bucket,actor],{env:process.env,encoding:'utf8',timeout:20_000});
  assert.equal(child.status,0,child.stderr);return JSON.parse(child.stdout.trim());
 }
 assert.equal(hit('fixture-ip-a','persistent-account','actor-a').ok,true);

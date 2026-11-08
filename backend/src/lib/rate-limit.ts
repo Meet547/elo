@@ -50,7 +50,7 @@ export async function rateLimit(
         rows.push(result[0]);
       }
       return rows;
-    });
+    },{isolationLevel:"ReadCommitted"});
     const blocked = results.filter(row => row.count > max);
     return { ok: blocked.length === 0, retryAfter: blocked.length ? Math.max(1, ...blocked.map(row => Math.ceil((row.resetAt.getTime() - now) / 1000))) : 0 };
   }

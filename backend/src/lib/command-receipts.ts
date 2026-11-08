@@ -3,7 +3,7 @@ import {createHash} from 'node:crypto';
 import {NextResponse} from 'next/server';
 import {Prisma} from '@prisma/client';
 import {db} from './db';
-import {ConcurrentGameWrite} from './unit-of-work';
+import {serializationConflict,ConcurrentGameWrite} from './unit-of-work';
 export type CommandResponse={status:number;body:unknown;headers?:Record<string,string>};
 const canonical=(value:unknown):unknown=>Array.isArray(value)?value.map(canonical):value&&typeof value==='object'?Object.fromEntries(Object.entries(value).sort(([a],[b])=>a.localeCompare(b)).map(([key,item])=>[key,canonical(item)])):value;
 /** The result and all game writes commit together, including on process failure. */
@@ -19,7 +19,7 @@ export async function runGameCommand(actorId:string,scope:string,key:string|null
    return result;
   },{isolationLevel:'Serializable',maxWait:10_000,timeout:25_000});}
   catch(error){
-   if(attempt>=4||!(error instanceof ConcurrentGameWrite||(error instanceof Prisma.PrismaClientKnownRequestError&&['P2002','P2034'].includes(error.code))))throw error;
+   if(attempt>=4||!(serializationConflict(error)||error instanceof ConcurrentGameWrite||(error instanceof Prisma.PrismaClientKnownRequestError&&['P2002','P2034'].includes(error.code))))throw error;
    await new Promise(resolve=>setTimeout(resolve,10*(attempt+1)));
   }
  }
