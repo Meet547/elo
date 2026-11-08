@@ -1,0 +1,27 @@
+services:
+  - type: web
+    name: elo-backend
+    runtime: node
+    plan: starter
+    branch: Updated-frontend
+    buildCommand: npm ci && npm run build:backend
+    startCommand: npm run start:backend
+    healthCheckPath: /api/health
+    numInstances: 1
+    disk:
+      name: elo-data
+      mountPath: /var/data
+      sizeGB: 1
+    envVars:
+      - key: NODE_VERSION
+        value: 22.16.0
+      - key: DATABASE_URL
+        value: file:/var/data/elo.db
+      - key: SESSION_SECRET
+        generateValue: true
+      - key: BACKEND_PROXY_SECRET
+        generateValue: true
+      - key: OLLAMA_API_KEY
+        sync: false
+      - key: OLLAMA_MODEL
+        value: gemma4:31b
