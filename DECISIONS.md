@@ -27,3 +27,7 @@ Publishing every seed that deterministically derives a deck reveals folded cards
 ## D007 — Preserve rules until their approved workstream
 
 The existing rating formula and default behavior stay unchanged until their regression tests and explicit workstream changes. Approved changes include check-when-legal timeouts, fixed ranked 10/20, ready checks and forfeit/void rules, real routes, removal of legacy house rating settlement, separate real ladder and persistent unranked results. Each receives its own tests and changelog entry.
+
+## D008 — Local Postgres prerequisite before ranked constraints
+
+The approved durable database target is Postgres. Move the active Prisma schema to Postgres before WS1 constraints instead of designing and discarding a second SQLite settlement migration. Preserve the original SQLite schema/history as a conversion reference. Integration tooling refuses remote hosts and non-test database names, and its default disposable container is loopback-only. This commit is not a production migration or permission to connect to production.

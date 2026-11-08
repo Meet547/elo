@@ -1,12 +1,10 @@
 import { PrismaClient } from '@prisma/client';
-import { resolve } from 'node:path';
 const globalForPrisma = globalThis as unknown as { prisma?: PrismaClient };
 export const dbEnabled = true;
-const configured = process.env.DATABASE_URL || 'file:./db/custom.db';
-if (!configured.startsWith('file:')) throw new Error('This deployment requires a persistent SQLite file URL.');
-const filename = configured.slice(5);
+const configured = process.env.DATABASE_URL;
+if (!configured || !/^postgres(?:ql)?:\/\//.test(configured)) throw new Error('DATABASE_URL must configure Postgres. SQLite is supported only by the isolated import tool.');
 export const db = globalForPrisma.prisma ?? new PrismaClient({
-  datasourceUrl: `file:${resolve(filename)}`,
+  datasourceUrl: configured,
   log: ['error'],
 });
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = db;

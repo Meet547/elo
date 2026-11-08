@@ -5,8 +5,21 @@ permissions:
 jobs:
   verify:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: elo_test
+          POSTGRES_PASSWORD: integration-only-not-a-production-secret
+          POSTGRES_DB: elo_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U elo_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: file:./db/ci.db
+      DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
+      DIRECT_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
+      TEST_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,8 +29,10 @@ jobs:
         with:
           bun-version: '1.3.14'
       - run: npm ci --include=dev
+      - run: npm run typecheck
       - run: npm run lint
       - run: npm test
       - run: npm run build
       - run: npm run build:backend
-      - run: node scripts/smoke-production.mjs
+      - run: npm run test:integration
+      - run: npm run smoke:production

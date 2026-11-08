@@ -7,14 +7,17 @@
     "build": "next build --webpack",
     "start": "next start",
     "lint": "eslint .",
-    "db:push": "prisma db push",
     "db:generate": "prisma generate",
     "db:migrate": "prisma migrate dev",
     "postinstall": "prisma generate",
     "build:backend": "node scripts/prepare-backend.mjs && next build backend/.app --webpack",
     "dev:backend": "node scripts/prepare-backend.mjs && next dev backend/.app --webpack -p 4000",
     "start:backend": "node scripts/start-backend.mjs",
-    "test": "bun scripts/test-engine.ts && bun scripts/test-evaluator.ts && bun scripts/test-rating.ts && bun scripts/test-rating-chart.ts && bun scripts/test-table-presentation.ts && bun scripts/test-table.ts && bun scripts/test-live.ts && bun scripts/test-ranked.ts && bun scripts/test-production.ts"
+    "test": "bun scripts/test-database-config.ts && bun scripts/test-engine.ts && bun scripts/test-evaluator.ts && bun scripts/test-rating.ts && bun scripts/test-rating-chart.ts && bun scripts/test-table-presentation.ts && bun scripts/test-table.ts && bun scripts/test-live.ts && bun scripts/test-ranked.ts && bun scripts/test-production.ts",
+    "typecheck": "tsc --noEmit",
+    "db:deploy": "prisma migrate deploy",
+    "test:integration": "node scripts/with-test-postgres.mjs bun scripts/test-postgres.ts",
+    "smoke:production": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -55,6 +58,7 @@
     "lucide-react": "^0.525.0",
     "next": "^16.4.5",
     "next-themes": "^0.4.6",
+    "pg": "^8.23.1",
     "prisma": "^6.19.3",
     "react": "^19.3.1",
     "react-day-picker": "^9.14.0",
@@ -72,6 +76,7 @@
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.5",
+    "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",
     "@types/react-dom": "^19.3.0",
     "bun-types": "^1.4.4",

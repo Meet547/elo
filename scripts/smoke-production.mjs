@@ -5,13 +5,16 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { createRequire } from 'node:module';
 import { once } from 'node:events';
+import { isolatedDatabaseUrl } from './lib/test-database.mjs';
 const require=createRequire(import.meta.url);
+assert.equal(process.env.ELO_TEST_DATABASE,'1','run smoke checks through the isolated Postgres harness');
+const databaseUrl=isolatedDatabaseUrl(process.env.TEST_DATABASE_URL);
 const directory=await mkdtemp(join(tmpdir(),'elo-smoke-'));
 const backendPort=Number(process.env.SMOKE_BACKEND_PORT || 4311);
 const frontendPort=Number(process.env.SMOKE_FRONTEND_PORT || 4312);
 const frontend=`http://127.0.0.1:${frontendPort}`;
 const backend=`http://127.0.0.1:${backendPort}`;
-const env={...process.env,NODE_ENV:'production',DATABASE_URL:`file:${directory}/test.db`,SESSION_SECRET:'smoke-test-signing-secret-not-a-real-secret',BACKEND_PROXY_SECRET:'smoke-test-proxy-secret-not-a-real-secret',OLLAMA_API_KEY:'test-only-no-inference',BACKEND_ORIGIN:backend,PORT:String(backendPort)};
+const env={...process.env,NODE_ENV:'production',DATABASE_URL:databaseUrl,DIRECT_DATABASE_URL:databaseUrl,SESSION_SECRET:'smoke-test-signing-secret-not-a-real-secret',BACKEND_PROXY_SECRET:'smoke-test-proxy-secret-not-a-real-secret',OLLAMA_API_KEY:'test-only-no-inference',BACKEND_ORIGIN:backend,PORT:String(backendPort)};
 const children=[];
 let logs='';
 function run(file,args,extra={}) {
