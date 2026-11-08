@@ -19,7 +19,7 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         // Serializable isolation protects candidate selection and both assignments.
         await tx.rankedSeat.deleteMany({ where: { roomCode: null, seenAt: { lt: cutoff } } });
         const player = await tx.player.findUnique({
-          where: { id: playerId, isRival: false },
+          where: { id: playerId, isSimulated: false },
           select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
         });
         if (!player) return null;
@@ -53,7 +53,7 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         const candidate = chooseRankedOpponent(waiting, pool, now.getTime());
         if (candidate) {
           const opponent = await tx.player.findUnique({
-            where: { id: candidate.playerId, isRival: false },
+            where: { id: candidate.playerId, isSimulated: false },
             select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
           });
           if (opponent && chooseRankedOpponent(waiting, [{ ...candidate, rating: opponent.rating }], now.getTime())) {

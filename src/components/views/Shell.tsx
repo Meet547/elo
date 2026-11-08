@@ -61,7 +61,7 @@ function SeasonRow({ k, v, tone }: { k: string; v: React.ReactNode; tone?: "mone
 
 export function Shell({ children }: { children: React.ReactNode }) {
   const { view, profile, ladder, muted, toggleMute, backToLobby, openProfile } = useFelt();
-  const meRank = ladder.find((p) => p.isMe)?.rank;
+  const meRank = profile?.rank ?? ladder.find((p) => p.isMe)?.rank;
   const pathname = usePathname();
   const router = useRouter();
   const ranked = pathname === "/ranked";

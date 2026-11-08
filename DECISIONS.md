@@ -39,3 +39,7 @@ Each new ranked game has a Match identity with conditional state transitions, fr
 ## D010 — Crash verification without application test hooks
 
 The crash fixture holds a task-owned Postgres advisory lock through a test-only database trigger at history insertion, kills the actual child process during the transaction, then checks another connection sees no partial result. The trigger/lock are removed only in the isolated test database. Production code has no crash switches or deliberate delays.
+
+## D011 — Read-only real ladder and explicit provenance
+
+Public ladder and activity exclude simulated personas; unranked activity remains owner-private. The existing legacy simulation column is mapped to the explicit ORM property isSimulated, preserving data without a destructive rename. No GET endpoint seeds or drifts simulated ratings. An explicit native insert-on-conflict seed is safe to repeat/concurrently invoke and never resets existing persona data. Real player rank uses a deterministic rating/hands/id ordering and is fetched independently of the paginated ladder, including profile refresh.

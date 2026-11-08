@@ -31,7 +31,7 @@ export function roomCode(input: string) {
 }
 
 export async function createLiveRoom(playerId: string) {
-  const player = await db.player.findUnique({ where: { id: playerId, isRival: false } });
+  const player = await db.player.findUnique({ where: { id: playerId, isSimulated: false } });
   if (!player) return null;
 
   await db.liveRoom.deleteMany({ where: { expiresAt: { lte: new Date() } } });
@@ -76,7 +76,7 @@ export async function commandLiveRoom(code: string, playerId: string, revision: 
   const snapshot = () => publicLiveTable(table, playerId, code, row.revision);
   if (table.status === "finished" || table.status === "closed") return { status: 409, room: snapshot(), error: "This room is finished. Commands cannot change its result." } as const;
   if (row.revision !== revision) return { status: 409, room: snapshot(), error: "The table moved. Try again." } as const;
-  const player = await db.player.findUnique({ where: { id: playerId, isRival: false } });
+  const player = await db.player.findUnique({ where: { id: playerId, isSimulated: false } });
   if (!player) return { status: 401, error: "Claim an Elo profile first." } as const;
 
   const error = applyLiveCommand(table, player, command, Date.now());

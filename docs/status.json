@@ -11,7 +11,8 @@
         "scripts/test-ranked-replay.ts",
         "scripts/test-settlement-crash.ts"
       ],
-      "commitSubject": "fix(ranked): make terminal settlement atomic and replay safe"
+      "commitSubject": "fix(ranked): make terminal settlement atomic and replay safe",
+      "commit": "3d5ff65"
     },
     "F2": {
       "status": "open",
@@ -33,10 +34,14 @@
       "evidence": "src/lib/poker/engine.ts:318; turn 100\u2192150 short all-in, call, original bettor incorrectly canRaise=true"
     },
     "F5": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS2",
-      "evidence": "backend/src/app/api/leaderboard/route.ts:21,55,134; response omits explicit simulation provenance"
+      "evidence": "backend/src/app/api/leaderboard/route.ts:21,55,134; response omits explicit simulation provenance",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
     },
     "F6": {
       "status": "open",
@@ -63,16 +68,24 @@
       "evidence": "src/lib/poker/live-table.ts:220; src/lib/poker/cards.ts:103; betting-time filtering exists, permanent privacy does not"
     },
     "F10": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS2",
-      "evidence": "backend/src/app/api/leaderboard/route.ts:21; four simultaneous localhost GETs: [200,500,500,500], Player PK violation"
+      "evidence": "backend/src/app/api/leaderboard/route.ts:21; four simultaneous localhost GETs: [200,500,500,500], Player PK violation",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
     },
     "F11": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS2",
-      "evidence": "backend/src/app/api/leaderboard/route.ts:148,153; actor derived from capped array"
+      "evidence": "backend/src/app/api/leaderboard/route.ts:148,153; actor derived from capped array",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
     },
     "F12": {
       "status": "open",

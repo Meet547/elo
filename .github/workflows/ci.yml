@@ -35,6 +35,7 @@ jobs:
       - run: npm run build
       - run: npm run build:backend
       - run: npm run test:integration
+      - run: npm run test:leaderboard
       - run: npm run test:ranked-integrity
       - run: npm run test:settlement-crash
       - run: npm run smoke:production

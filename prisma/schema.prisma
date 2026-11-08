@@ -9,26 +9,26 @@ datasource db {
 }
 
 model Player {
-  id         String             @id @default(cuid())
-  name       String
-  rating     Int                @default(1200)
+  id          String             @id @default(cuid())
+  name        String
+  rating      Int                @default(1200)
   /// Glicko-2 rating deviation — how sure the ladder is of this rating
-  rd         Float              @default(110)
+  rd          Float              @default(110)
   /// Glicko-2 volatility — how erratic recent sessions have been
-  volatility Float              @default(0.06)
+  volatility  Float              @default(0.06)
   /// rated sessions played (drives provisional status and the exposure cap)
-  rated      Int                @default(0)
-  peak       Int                @default(1200)
-  hands      Int                @default(0)
-  cashes     Int                @default(0)
-  netChips   Int                @default(0)
-  biggestPot Int                @default(0)
-  streak     Int                @default(0)
-  isRival    Boolean            @default(false)
-  createdAt  DateTime           @default(now())
-  lastSeen   DateTime           @default(now())
-  results    Session[]
-  matchSeats MatchParticipant[]
+  rated       Int                @default(0)
+  peak        Int                @default(1200)
+  hands       Int                @default(0)
+  cashes      Int                @default(0)
+  netChips    Int                @default(0)
+  biggestPot  Int                @default(0)
+  streak      Int                @default(0)
+  isSimulated Boolean            @default(false) @map("isRival")
+  createdAt   DateTime           @default(now())
+  lastSeen    DateTime           @default(now())
+  results     Session[]
+  matchSeats  MatchParticipant[]
 }
 
 model Session {

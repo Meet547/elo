@@ -19,7 +19,9 @@
     "test:integration": "node scripts/with-test-postgres.mjs bun scripts/test-postgres.ts",
     "smoke:production": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs",
     "test:ranked-integrity": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-replay.ts",
-    "test:settlement-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-settlement-crash.ts"
+    "test:settlement-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-settlement-crash.ts",
+    "db:seed": "bun --conditions=react-server scripts/seed-practice-roster.ts",
+    "test:leaderboard": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-leaderboard.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

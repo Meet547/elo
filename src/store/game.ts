@@ -60,6 +60,8 @@ export interface TableOpponent {
 }
 
 export interface LadderRow {
+  isSimulated: boolean;
+  provenance: "REAL" | "SIMULATED";
   id: string;
   name: string;
   rating: number;
@@ -76,6 +78,7 @@ export interface LadderRow {
 }
 
 export interface WireRow {
+  provenance: "RANKED" | "UNRANKED" | "LEGACY" | "SIMULATED";
   id: string;
   name: string;
   place: number;
@@ -87,6 +90,7 @@ export interface WireRow {
 }
 
 export interface Profile {
+  rank?: number;
   id: string;
   name: string;
   rating: number;

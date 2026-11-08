@@ -46,7 +46,7 @@ export function ProfileView() {
   const { profile, sessions, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
   const [filter, setFilter] = useState<"all" | "cashes" | "losses">("all");
 
-  const meRank = ladder.find((p) => p.isMe)?.rank;
+  const meRank = profile?.rank ?? ladder.find((p) => p.isMe)?.rank;
 
   const chrono = useMemo(() => [...sessions].reverse(), [sessions]);
   const points: GraphPoint[] = useMemo(() => {

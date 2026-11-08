@@ -89,6 +89,8 @@ export function createLocalProfile(name: string): Profile {
 function rosterRow(slug: string, name: string, rating: number, hands: number, cashes: number): LadderRow {
   return {
     id: `rival_${slug}`,
+    isSimulated: true,
+    provenance: "SIMULATED",
     name,
     rating,
     rd: 70,
@@ -108,7 +110,7 @@ function syncRoster(stored: LadderRow[]): LadderRow[] {
   return ROSTER.map((bot) => {
     const existing = byId.get(`rival_${bot.slug}`);
     return existing
-      ? { ...existing, name: bot.name }
+      ? { ...existing, name: bot.name, isSimulated: true, provenance: "SIMULATED" }
       : rosterRow(bot.slug, bot.name, bot.rating, bot.hands, bot.cashes);
   });
 }
@@ -123,6 +125,8 @@ function rank(rows: LadderRow[]): LadderRow[] {
 function meRow(profile: Profile): LadderRow {
   return {
     id: profile.id,
+    isSimulated: false,
+    provenance: "REAL",
     name: profile.name,
     rating: profile.rating,
     rd: profile.rd,
@@ -161,6 +165,7 @@ export function localWire(sessions: SessionRow[], profile: Profile | null): Wire
     ratingBefore: s.ratingBefore,
     ratingAfter: s.ratingAfter,
     at: s.createdAt,
+    provenance: "UNRANKED",
   }));
 }
 

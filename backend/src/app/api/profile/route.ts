@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from "next/server";
 import { db, dbEnabled } from "@/lib/db";
+import { realPlayerRank } from "../../../lib/player-rank";
 import { START_RATING } from "@/lib/rating";
 import { rateLimit, tooMany } from "@/lib/rate-limit";
 import { clearSessionCookie, sessionPlayer, setSessionCookie } from "@/lib/session";
@@ -17,14 +18,14 @@ export async function GET(req: NextRequest) {
   const playerId = sessionPlayer(req);
   if (!playerId) return NextResponse.json({ error: "no session" }, { status: 401, headers: NO_STORE });
 
-  const player = await db.player.findUnique({ where: { id: playerId } });
+  const player = await db.player.findUnique({ where: { id: playerId, isSimulated: false } });
   if (!player) {
     // the row is gone (reset ladder): the cookie is dead weight, drop it
     const res = NextResponse.json({ error: "not found" }, { status: 401, headers: NO_STORE });
     clearSessionCookie(res);
     return res;
   }
-  return NextResponse.json({ player }, { headers: NO_STORE });
+  return NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
 }
 
 /** POST /api/profile { name } — claim a seat on the ladder. */
@@ -58,7 +59,7 @@ export async function POST(req: NextRequest) {
     data: { name, rating: START_RATING, peak: START_RATING },
   });
 
-  const res = NextResponse.json({ player }, { headers: NO_STORE });
+  const res = NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
   setSessionCookie(res, player.id);
   return res;
 }
