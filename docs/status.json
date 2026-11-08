@@ -15,10 +15,15 @@
       "commit": "3d5ff65"
     },
     "F2": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS3",
-      "evidence": "src/store/game.ts:309,327; failed GET profile \u2192 health \u2192 POST profile without resume retry"
+      "evidence": "src/store/game.ts:309,327; failed GET profile \u2192 health \u2192 POST profile without resume retry",
+      "tests": [
+        "scripts/test-session-resume.ts",
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(identity): preserve returning sessions through backend cold starts"
     },
     "F3": {
       "status": "partial",
@@ -41,7 +46,8 @@
       "tests": [
         "scripts/test-leaderboard.ts"
       ],
-      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
     },
     "F6": {
       "status": "open",
@@ -75,7 +81,8 @@
       "tests": [
         "scripts/test-leaderboard.ts"
       ],
-      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
     },
     "F11": {
       "status": "fixed-on-branch",
@@ -85,7 +92,8 @@
       "tests": [
         "scripts/test-leaderboard.ts"
       ],
-      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free"
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
     },
     "F12": {
       "status": "open",

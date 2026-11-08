@@ -1,6 +1,7 @@
 "use client";
 
 import { useFelt } from "@/store/game";
+import { Reconnect } from "@/components/views/Reconnect";
 import { Onboard } from "@/components/views/Onboard";
 import { Lobby } from "@/components/views/Lobby";
 import { TableView } from "@/components/views/TableView";
@@ -12,7 +13,7 @@ import { primeAudio } from "@/lib/felt/sound";
 import { useEffect } from "react";
 
 export default function Page() {
-  const { view, booting, boot } = useFelt();
+  const { view, booting, bootError, boot } = useFelt();
 
   useEffect(() => {
     if (!useFelt.getState().profile) void boot();
@@ -37,6 +38,8 @@ export default function Page() {
       </div>
     );
   }
+
+  if (bootError) return <Reconnect />;
 
   // The view swap is driven by the store, and the entrance is a CSS animation:
   // navigation must never wait on a JS frame loop. An exit animation that

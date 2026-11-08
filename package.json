@@ -21,7 +21,8 @@
     "test:ranked-integrity": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-replay.ts",
     "test:settlement-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-settlement-crash.ts",
     "db:seed": "bun --conditions=react-server scripts/seed-practice-roster.ts",
-    "test:leaderboard": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-leaderboard.ts"
+    "test:leaderboard": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-leaderboard.ts",
+    "test:session-resume": "bun scripts/test-session-resume.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

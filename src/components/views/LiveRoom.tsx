@@ -22,6 +22,7 @@ import { verifyDeck } from "@/lib/poker/cards";
 import { boardCardDelay, holeCardDelay, isRunout } from "@/lib/poker/deal-timing";
 import { LIVE_CAPACITY, type LiveCommand, type LiveSnapshot } from "@/lib/poker/live-table";
 import { cn } from "@/lib/utils";
+import { Reconnect } from "./Reconnect";
 import { Onboard } from "./Onboard";
 
 const dollars = (amount: number) => "$" + amount.toLocaleString("en-US");
@@ -29,10 +30,12 @@ const signedChips = (amount: number) => `${amount > 0 ? "+" : amount < 0 ? "−"
 
 export function LiveEntry({ code }: { code?: string }) {
   const profile = useFelt((state) => state.profile);
+  const bootError = useFelt((state) => state.bootError);
   const booting = useFelt((state) => state.booting);
   const boot = useFelt((state) => state.boot);
   useEffect(() => { if (!profile) void boot(); }, [boot, profile]);
   if (!profile && booting) return <div className="elo-page" role="status">Opening the poker room…</div>;
+  if (!profile && bootError) return <Reconnect />;
   if (!profile) return <Onboard invite={Boolean(code)} />;
   return code ? <LiveRoom key={code} code={code} /> : <LiveLobby />;
 }

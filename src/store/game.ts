@@ -7,7 +7,7 @@
 // ---------------------------------------------------------------------------
 
 import { create } from "zustand";
-import { waitForRoomReady } from "@/lib/room-ready";
+import { resumeProfile } from "@/lib/session-resume";
 import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
 import { requestBotDecision } from "@/lib/poker/bot-request";
 import { shortHandLabel } from "@/lib/poker/hand-label";
@@ -160,6 +160,7 @@ export interface TurnClock {
 interface FeltState {
   view: View;
   booting: boolean;
+  bootError: string | null;
   token: string | null;
   profile: Profile | null;
   ladder: LadderRow[];
@@ -269,9 +270,12 @@ function livePool(ladder: LadderRow[]): RosterBot[] | undefined {
   return out.length >= 10 ? out : undefined;
 }
 
+let bootFlight: Promise<void> | null = null;
+
 export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   view: "onboard",
   booting: true,
+  bootError: null,
   token: null,
   profile: null,
   ladder: [],
@@ -312,24 +316,32 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   // ------------------------------------------------------------------ boot
   async boot() {
     if (typeof window === "undefined") return;
-    const recent = readRecent();
-    set({ muted: window.localStorage.getItem("felt_muted") === "1", recent });
-    // identity lives in an httpOnly cookie; the client never holds a token
-    try {
-      const res = await fetch("/api/profile");
-      if (res.ok) {
-        const { player } = await res.json();
-        set({ token: player.id, profile: player, view: "lobby" });
+    if (bootFlight) return bootFlight;
+    bootFlight = (async () => {
+      set({ booting: true, bootError: null });
+      const recent = readRecent();
+      set({ muted: window.localStorage.getItem("felt_muted") === "1", recent });
+      try {
+        const player = await resumeProfile<Profile>();
+        if (player) set({ token: player.id, profile: player, view: "lobby" });
+        set({ booting: false });
+        void get().refreshLadder();
+      } catch (error) {
+        set({ booting: false, bootError: error instanceof Error ? error.message : "Could not restore your seat." });
       }
-    } catch {
-      // offline — onboarding still works when the API returns
-    }
-    set({ booting: false });
-    void get().refreshLadder();
+    })();
+    try { await bootFlight; } finally { bootFlight = null; }
   },
 
   async createProfile(name) {
-    await waitForRoomReady();
+    // Resolve the cookie before any identity mutation, including a retry from onboarding.
+    const existing = await resumeProfile<Profile>();
+    if (existing) {
+      set({ token: existing.id, profile: existing, view: "lobby", bootError: null });
+      void get().refreshLadder();
+      get().reseedOffer();
+      return;
+    }
     const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },

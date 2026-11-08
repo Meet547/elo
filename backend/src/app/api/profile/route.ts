@@ -34,6 +34,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: "demo mode", demo: true }, { status: 503, headers: NO_STORE });
   }
 
+  // A repeated claim with an existing signed cookie resumes its owner.
+  // This also protects callers other than the current frontend from accidental identity replacement.
+  const existingId = sessionPlayer(req);
+  if (existingId) {
+    const existing = await db.player.findUnique({ where: { id: existingId, isSimulated: false } });
+    if (existing) return NextResponse.json({ player: { ...existing, rank: await realPlayerRank(db, existing), provenance: "REAL" } }, { headers: NO_STORE });
+  }
+
   const limit = rateLimit(req, "profile:create", 8, 10 * 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
 

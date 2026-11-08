@@ -7,6 +7,7 @@ import { Shell } from "./Shell";
 import { TactileButton } from "@/components/felt/kit";
 import { RANKED_HANDS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
 import { useFelt } from "@/store/game";
+import { Reconnect } from "./Reconnect";
 import { Onboard } from "./Onboard";
 
 async function queueRequest(command: "join" | "poll" | "cancel", signal?: AbortSignal): Promise<RankedQueueStatus> {
@@ -21,10 +22,12 @@ async function queueRequest(command: "join" | "poll" | "cancel", signal?: AbortS
 
 export function RankedEntry({ autoQueue }: { autoQueue: boolean }) {
   const profile = useFelt((state) => state.profile);
+  const bootError = useFelt((state) => state.bootError);
   const booting = useFelt((state) => state.booting);
   const boot = useFelt((state) => state.boot);
   useEffect(() => { if (!profile) void boot(); }, [boot, profile]);
   if (!profile && booting) return <main className="elo-page" role="status">Opening ranked play…</main>;
+  if (!profile && bootError) return <Reconnect />;
   if (!profile) return <Onboard />;
   return <Shell><RankedQueue autoQueue={autoQueue} rating={profile.rating} /></Shell>;
 }

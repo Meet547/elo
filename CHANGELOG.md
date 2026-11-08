@@ -13,3 +13,9 @@
 - Ready confirmation UI remains WS6 work; automatic match startup is retained until that workstream. Existing legacy room/history import mapping remains part of the approved migration rehearsal.
 
 - WS2: real leaderboard reads no longer seed/simulate games or mutate the database. Simulated practice personas are explicitly marked and seeded idempotently only by operator command. Public ranked activity excludes simulated and private results. The signed-in player's rank is computed independently of the top-60 page and rendered in Shell/Profile after identity refresh.
+
+### WS3 — returning-player recovery
+
+- Retry safe profile resume through sleeping-host failures; show a reconnect screen after timeout instead of treating the player as anonymous.
+- Coalesce duplicate boot requests and preserve the existing signed identity on repeated claims, in both client and server.
+- Added outage/recovery boundary and identity-preservation regression coverage. Provider-backed identity remains an open workstream.

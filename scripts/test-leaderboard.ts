@@ -3,7 +3,7 @@ import { randomBytes, randomUUID } from 'node:crypto';
 import { NextRequest } from 'next/server';
 import { db } from '../backend/src/lib/db';
 import { GET } from '../backend/src/app/api/leaderboard/route';
-import { GET as profileGet } from '../backend/src/app/api/profile/route';
+import { GET as profileGet, POST as profilePost } from '../backend/src/app/api/profile/route';
 import { signSession, SESSION_COOKIE } from '../backend/src/lib/session';
 import { isolatedDatabaseUrl } from './lib/test-database.mjs';
 assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);
