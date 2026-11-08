@@ -5,10 +5,18 @@ import { TactileButton } from "@/components/felt/kit";
 import { Wordmark } from "@/components/felt/brand";
 import { RoomFooter } from "@/components/felt/room-footer";
 import { CARD_BACK_SRC } from "@/components/felt/poker-assets";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 
 export function Onboard({ invite = false }: { invite?: boolean }) {
   const { createProfile, ladder } = useFelt();
+  const [google, setGoogle] = useState(false);
+  useEffect(() => {
+    const controller = new AbortController();
+    void fetch("/api/auth/config", { cache: "no-store", signal: controller.signal })
+      .then(async response => { if (response.ok) setGoogle((await response.json()).google === true); })
+      .catch(() => {});
+    return () => controller.abort();
+  }, []);
   const [name, setName] = useState("");
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState("");
@@ -50,6 +58,10 @@ export function Onboard({ invite = false }: { invite?: boolean }) {
         <div className="mt-4 grid gap-4 md:grid-cols-2">
           <form className="elo-panel p-5 sm:p-7" onSubmit={(event) => { event.preventDefault(); void submit(); }}>
             <h2 className="font-display text-3xl">Claim a seat</h2>
+            {google && <div className="my-4 space-y-2">
+              <a href="/api/auth/google" className="elo-input inline-flex min-h-11 items-center justify-center">Continue with Google</a>
+              <p className="text-sm text-ink-soft">Restore your existing profile or start a new one.</p>
+            </div>}
             <p className="mt-1 text-sm text-ink-soft">New players start at a provisional rating of 1,200.</p>
             <label className="label mt-4 block" htmlFor="name">Table name</label>
             <div className="mt-2 flex flex-wrap gap-2 max-[360px]:flex-col">

@@ -41,3 +41,5 @@
 - Separated scored best-seen/best-winning records and persisted ranked descriptions/scores.
 - Fixed a newly reproduced side-pot chip-loss path and excluded uncalled refunds from pot-win records.
 - Added independent pot/odd-chip cases and 100,000 seeded hand invariants with exact replay checks.
+
+- Google sign-in is also available directly from onboarding when configured, allowing cross-device recovery without creating an extra guest profile. Public capability responses expose only availability, never credentials.

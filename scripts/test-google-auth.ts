@@ -4,6 +4,7 @@ import {OAuth2Client} from 'google-auth-library';
 import {NextRequest} from 'next/server';
 import {db} from '../backend/src/lib/db';
 import {beginGoogle,consumeGoogleAttempt,linkGoogleIdentity,accountIdentity,googleIdentity} from '../backend/src/lib/google-auth';
+import {GET as capabilities} from '../backend/src/app/api/auth/config/route';
 import {GET as googleStart} from '../backend/src/app/api/auth/google/route';
 import {isolatedDatabaseUrl} from './lib/test-database.mjs';
 assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);
@@ -54,9 +55,11 @@ try{
  assert.deepEqual(await accountIdentity(player.id),{verified:true,administrator:true,providers:['google']});
  const guest=await db.player.create({data:{name:'admin@fixture.example'}});
  assert.equal((await accountIdentity(guest.id)).administrator,false);
+ assert.deepEqual(await capabilities().json(),{google:true});
  const live=await googleStart(new NextRequest('https://front.example/api/auth/google'));
  assert.equal(live.status,303);assert(live.headers.get('set-cookie')?.includes('HttpOnly'));
  delete process.env.GOOGLE_CLIENT_SECRET;
+ assert.deepEqual(await capabilities().json(),{google:false},'public capability response exposes no secrets and hides unconfigured sign-in');
  assert.equal((await googleStart(new NextRequest('https://front.example/api/auth/google'))).status,503,'unconfigured provider must not fake sign-in');
  console.log('PASS — PKCE/state/browser binding, expiry, replay protection, account restoration, guest-ID preservation and verified admin allowlist');
 }finally{await db.$disconnect();}
