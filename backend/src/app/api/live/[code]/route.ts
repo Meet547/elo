@@ -37,7 +37,7 @@ export async function POST(req: NextRequest, { params }: Context) {
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);
   if (!dbEnabled) return json({ error: "Live rooms need a database connection." }, 503);
-  const limit = rateLimit(req, `live:act:${player}`, 90, 60_000);
+  const limit = await rateLimit(req, "live:act", 90, 60_000, player);
   if (!limit.ok) return tooMany(limit.retryAfter);
   const body = payload.safeParse(await req.json().catch(() => null));
   if (!body.success) return json({ error: "Invalid table command." }, 400);

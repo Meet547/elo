@@ -43,3 +43,10 @@
 - Added independent pot/odd-chip cases and 100,000 seeded hand invariants with exact replay checks.
 
 - Google sign-in is also available directly from onboarding when configured, allowing cross-device recovery without creating an extra guest profile. Public capability responses expose only availability, never credentials.
+
+### WS3 continuation — identity controls
+
+- Added canonical unique names with race-safe conflict responses, legacy name claims and profile rename controls.
+- Persisted atomic account/IP mutation limits across restarts using hashed keys; public ladder reads remain database read-only.
+- Added owner-only export and explicit profile closure, with credential revocation and retained integrity history; active games prevent closure.
+- Enforced provider verification and claimed names inside matchmaking, with separate pools using the existing 12-session provisional boundary.

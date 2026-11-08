@@ -91,6 +91,8 @@ export interface WireRow {
 }
 
 export interface Profile {
+  rankedPlacements?: number;
+  nameKey?: string | null;
   rank?: number;
   id: string;
   name: string;
@@ -352,7 +354,10 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
     });
     if (!res.ok) {
       if (res.status === 429) throw new Error("Too many attempts. Wait a moment and try again.");
-      if (res.status === 400) throw new Error("Enter a valid table name.");
+      if (res.status === 400 || res.status === 409) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Enter a valid, available table name.");
+      }
       throw new Error("The room connection was interrupted. Please try Claim Seat again.");
     }
     const { player } = await res.json();

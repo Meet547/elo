@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { PrismaClient } from '@prisma/client';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
 import { tmpdir } from 'node:os';
@@ -55,6 +56,11 @@ try {
  assert.equal(events.status,200);assert(events.headers.get('content-type').includes('text/event-stream'));
  const reader=events.body.getReader();assert(new TextDecoder().decode((await reader.read()).value).includes('data:'));
  await reader.cancel();controller.abort();
+ const denied=await request('/api/ranked',{method:'POST',cookie:host.cookie,body:JSON.stringify({command:'join'})});
+ assert.equal(denied.response.status,403,'guests cannot queue for ranked');
+ const fixtureDb=new PrismaClient();
+ await fixtureDb.externalIdentity.create({data:{provider:'google',subject:'smoke-verified-host',email:'smoke@fixture.example',playerId:host.data.player.id}});
+ await fixtureDb.$disconnect();
  const queued=await request('/api/ranked',{method:'POST',cookie:host.cookie,body:JSON.stringify({command:'join'})});
  assert.equal(queued.data.status,'searching');
  assert.equal((await request('/api/ranked',{method:'POST',cookie:host.cookie,body:JSON.stringify({command:'cancel'})})).data.status,'idle');

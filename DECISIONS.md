@@ -55,3 +55,11 @@ Only loopback elo_test import targets are supported until live cutover is explic
 ## D014 — approved game-rule and hand-record corrections
 
 Reopening uses a player's last street action level and the last full raise, including cumulative short all-ins. Ranked blinds stay 10/20 for all ten hands, while other existing schedules remain unchanged. Human expiry checks when legal and folds only when facing a bet. Best seen means evaluated showdown hands including losses; best winning is separate, scored and never downgraded by a weaker result. Uncalled chips are refunds, not won pots. A lone fully matched player versus all-ins runs out immediately so an already uncontested side pot cannot be folded away.
+
+## D015 — unique identity claims and ranked eligibility
+
+Canonical new names use NFKC, collapsed whitespace and lowercase uniqueness with a database constraint. Old names/IDs are preserved and explicitly claimed by their owner. Reserved staff names and a basic explicit profanity list are filtered without claiming universal multilingual moderation. Ranked requires provider verification and a claimed name at the service boundary. Placement segregation reuses the existing 12-session provisional boundary and does not alter rating calculations. A separate atomic rankedPlacements counter starts at zero for legacy players so old house/legacy results do not bypass verified ranked placement.
+
+## D016 — owner export and profile closure
+
+Export is owner-only and excludes session credentials/other players' private cards. Explicit closure revokes access, removes provider contact data and pseudonymizes the current profile while retaining match/settlement history and historical snapshots for integrity. It cannot run during an active game. This is not represented as complete regulatory erasure; retention/legal policy remains deferred. Mutation rate limits persist hashed account/IP windows across restarts; public read-only ladder queries do not write limit records.

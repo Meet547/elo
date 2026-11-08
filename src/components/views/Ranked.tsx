@@ -5,6 +5,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Trophy } from "lucide-react";
 import { Shell } from "./Shell";
 import { TactileButton } from "@/components/felt/kit";
+import { PROVISIONAL_SESSIONS } from "@/lib/rating";
 import { RANKED_HANDS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
 import { useFelt } from "@/store/game";
 import { Reconnect } from "./Reconnect";
@@ -29,7 +30,7 @@ export function RankedEntry({ autoQueue }: { autoQueue: boolean }) {
   if (!profile && booting) return <main className="elo-page" role="status">Opening ranked play…</main>;
   if (!profile && bootError) return <Reconnect />;
   if (!profile) return <Onboard />;
-  return <Shell><RankedQueue autoQueue={autoQueue} rating={profile.rating} /></Shell>;
+  return <Shell><p className="mb-3 text-sm text-ink-soft">Verified accounts only · 10/20 blinds · {(profile.rankedPlacements ?? 0) < PROVISIONAL_SESSIONS ? `Placement pool: ${profile.rankedPlacements ?? 0}/${PROVISIONAL_SESSIONS} matches completed` : "Established pool"}</p><RankedQueue autoQueue={autoQueue} rating={profile.rating} /></Shell>;
 }
 
 function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number }) {

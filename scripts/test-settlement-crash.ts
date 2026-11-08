@@ -54,6 +54,7 @@ try {
   }
   assert(paused,'child must enter the real uncommitted settlement');
   const visible=await db.player.findUniqueOrThrow({where:{id:players[0].id}});
+  assert.equal(visible.rankedPlacements,0);
   assert.equal(visible.rated,0,'uncommitted rating must not be visible to another connection');
   assert.equal(await db.session.count({where:{matchId}}),0);
   assert.equal(await db.matchSettlement.count({where:{matchId}}),0);
@@ -61,6 +62,7 @@ try {
   await control.query('SELECT pg_advisory_unlock($1::bigint)',[key]);locked=false;
   await control.query(`DROP TRIGGER ${trigger} ON "Session"`);
   await control.query(`DROP FUNCTION ${trigger}()`);
+  assert.equal((await db.player.findUniqueOrThrow({where:{id:players[0].id}})).rankedPlacements,0);
   assert.equal((await db.player.findUniqueOrThrow({where:{id:players[0].id}})).rated,0);
   assert.equal((await db.match.findUniqueOrThrow({where:{id:matchId}})).state,'ACTIVE');
   assert.equal((await db.liveRoom.findUniqueOrThrow({where:{code:row.code}})).revision,row.revision);
@@ -70,6 +72,7 @@ try {
   assert.equal(recovered!.status,'finished');
   assert.equal(await db.session.count({where:{matchId}}),2);
   assert.equal(await db.matchSettlement.count({where:{matchId}}),1);
+  assert.equal((await db.player.findUniqueOrThrow({where:{id:players[0].id}})).rankedPlacements,1);
   assert.equal((await db.player.findUniqueOrThrow({where:{id:players[0].id}})).rated,1);
   console.log('PASS — SIGKILL during real settlement exposes no partial writes; restart settles once');
 } finally {

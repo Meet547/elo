@@ -8,13 +8,13 @@ export const dynamic = 'force-dynamic';
 
 /** Real ladder reads never seed players, simulate games or mutate ratings. */
 export async function GET(req: NextRequest) {
-  const limit = rateLimit(req, 'leaderboard', 90, 60_000);
+  const limit = await rateLimit(req, 'leaderboard', 90, 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
   const playerId = await sessionPlayer(req);
   const [players, me, wire] = await Promise.all([
-    db.player.findMany({ where: { isSimulated: false }, orderBy: [{ rating: 'desc' }, { hands: 'desc' }, { id: 'asc' }], take: 60 }),
-    playerId ? db.player.findUnique({ where: { id: playerId, isSimulated: false } }) : null,
-    db.session.findMany({ where: { mode: 'RANKED', player: { isSimulated: false } },
+    db.player.findMany({ where: { isSimulated: false, deletedAt: null }, orderBy: [{ rating: 'desc' }, { hands: 'desc' }, { id: 'asc' }], take: 60 }),
+    playerId ? db.player.findUnique({ where: { id: playerId, isSimulated: false, deletedAt: null } }) : null,
+    db.session.findMany({ where: { mode: 'RANKED', player: { isSimulated: false, deletedAt: null } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 14,
       include: { player: { select: { name: true } } } }),
   ]);

@@ -2,6 +2,7 @@ import 'server-only';
 import {createHash,randomBytes} from 'node:crypto';
 import {OAuth2Client} from 'google-auth-library';
 import {db} from './db';
+import {displayName} from './display-name';
 
 export const oauthCookie='elo_oauth_browser';
 export const digest=(value:string)=>createHash('sha256').update(value).digest('hex');
@@ -54,7 +55,7 @@ export async function linkGoogleIdentity(identity:{subject:string;email:string},
     }
     const guest=guestId?await tx.player.findUnique({where:{id:guestId,deletedAt:null,isSimulated:false}}):null;
     if(guest&&await tx.externalIdentity.count({where:{playerId:guest.id,provider:'google'}}))throw new Error('This player already has a Google identity.');
-    const player=guest??await tx.player.create({data:{name:`Player ${randomBytes(4).toString('hex')}`}});
+    const player=guest??await tx.player.create({data:displayName(`Player ${randomBytes(4).toString('hex')}`)});
     await tx.externalIdentity.create({data:{provider:'google',subject:identity.subject,email:identity.email,playerId:player.id}});
     return player.id;
   },{isolationLevel:'Serializable'});

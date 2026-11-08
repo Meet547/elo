@@ -155,10 +155,16 @@
       "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
     },
     "A4": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS3",
-      "evidence": "backend/src/app/api/profile/route.ts:36,57; IP creation limiter exists (8 per ten minutes), but no verification or unique names; guests can currently queue"
+      "evidence": "backend/src/app/api/profile/route.ts:36,57; IP creation limiter exists (8 per ten minutes), but no verification or unique names; guests can currently queue",
+      "tests": [
+        "scripts/test-profile-names.ts",
+        "scripts/test-durable-rate-limit.ts",
+        "scripts/test-ranked-eligibility.ts"
+      ],
+      "reason": "Canonical unique claims, durable mutation account/IP limits, verified service-boundary ranked access and separate placements implemented; multilingual moderation remains limited and provider setup pending"
     },
     "A5": {
       "status": "partial",
@@ -177,9 +183,10 @@
       "evidence": "backend/src/lib/session.ts:20,69; route inventory has no logout/revoke/delete/recovery; clear-cookie helper is not a workflow",
       "tests": [
         "scripts/test-account-sessions.ts",
-        "scripts/test-google-auth.ts"
+        "scripts/test-google-auth.ts",
+        "scripts/test-account-management.ts"
       ],
-      "reason": "Google recovery and persistent logout/revocation verified locally; deletion, export and live provider setup remain pending"
+      "reason": "Google recovery, revocable sessions, owner export and explicit profile closure implemented; live provider setup and full retention/erasure policy remain pending"
     },
     "A7": {
       "status": "open",

@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {generateKeyPairSync,createSign} from 'node:crypto';
+import {generateKeyPairSync,createSign,randomBytes} from 'node:crypto';
 import {OAuth2Client} from 'google-auth-library';
 import {NextRequest} from 'next/server';
 import {db} from '../backend/src/lib/db';
@@ -8,6 +8,7 @@ import {GET as capabilities} from '../backend/src/app/api/auth/config/route';
 import {GET as googleStart} from '../backend/src/app/api/auth/google/route';
 import {isolatedDatabaseUrl} from './lib/test-database.mjs';
 assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);
+process.env.SESSION_SECRET=randomBytes(32).toString('hex');
 process.env.GOOGLE_CLIENT_ID='fixture-client';process.env.GOOGLE_CLIENT_SECRET='fixture-only';process.env.NEXT_PUBLIC_SITE_URL='https://front.example';
 try{
  const {privateKey,publicKey}=generateKeyPairSync('rsa',{modulusLength:2048});

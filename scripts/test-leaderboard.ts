@@ -10,7 +10,7 @@ assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.
 process.env.SESSION_SECRET=randomBytes(32).toString('hex');
 const selected=process.argv.find(arg=>arg.startsWith('--case='))?.slice(7)??'all';
 const request=(id?:string)=>new NextRequest('https://fixture.example/api/leaderboard',{headers:id?{cookie:`${SESSION_COOKIE}=${signSession(id)}`}:{}});
-const counts=async()=>({players:await db.player.count(),sessions:await db.session.count()});
+const counts=async()=>({players:await db.player.count(),sessions:await db.session.count(),limits:await db.rateWindow.count()});
 try{
  if(selected==='readonly'||selected==='all'){
   const before=await counts();const response=await GET(request());assert.equal(response.status,200);

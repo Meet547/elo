@@ -1,13 +1,5 @@
-// ---------------------------------------------------------------------------
-// Rate limiting — fixed window, per client per bucket.
-//
-// The app is a single Node process behind a proxy, so an in-memory counter is
-// the right size: no shared store to run, no dependency. It protects the two
-// endpoints that cost real writes (profile creation, settlement) from a loop
-// and from accidental double-submits, and it fails open by design — a limiter
-// outage must never take the table down.
-// ---------------------------------------------------------------------------
-
+import { createHmac } from "node:crypto";
+import { db } from "./db";
 import type { NextRequest } from "next/server";
 
 interface Window {
@@ -30,13 +22,38 @@ export function clientKey(req: NextRequest): string {
  * Count one hit against `bucket` for this client.
  * Returns `{ ok, retryAfter }` where retryAfter is in seconds.
  */
-export function rateLimit(
+export async function rateLimit(
   req: NextRequest,
   bucket: string,
   max: number,
   windowMs: number,
-): { ok: boolean; retryAfter: number } {
+  actor?: string,
+): Promise<{ ok: boolean; retryAfter: number }> {
   const now = Date.now();
+  if (req.method !== "GET" || bucket === "auth:google") {
+    const secret = process.env.SESSION_SECRET;
+    if (!secret || secret.length < 16) throw new Error("Stable session secret is required for durable mutation limits.");
+    const scopes = [`ip:${clientKey(req)}`, ...(actor ? [`account:${actor}`] : [])];
+    const results = await db.$transaction(async tx => {
+      const rows: { count: number; resetAt: Date }[] = [];
+      for (const scope of scopes) {
+        const key = createHmac("sha256", secret).update(`${bucket}:${scope}`).digest("hex");
+        const resetAt = new Date(now + windowMs);
+        const result = await tx.$queryRaw<{ count: number; resetAt: Date }[]>`
+          INSERT INTO "RateWindow" ("key", "count", "resetAt") VALUES (${key}, 1, ${resetAt})
+          ON CONFLICT ("key") DO UPDATE SET
+          "count" = CASE WHEN "RateWindow"."resetAt" <= ${new Date(now)} THEN 1 ELSE "RateWindow"."count" + 1 END,
+          "resetAt" = CASE WHEN "RateWindow"."resetAt" <= ${new Date(now)} THEN ${resetAt} ELSE "RateWindow"."resetAt" END
+          RETURNING "count", "resetAt"`;
+        rows.push(result[0]);
+      }
+      return rows;
+    });
+    const blocked = results.filter(row => row.count > max);
+    return { ok: blocked.length === 0, retryAfter: blocked.length ? Math.max(1, ...blocked.map(row => Math.ceil((row.resetAt.getTime() - now) / 1000))) : 0 };
+  }
+  // Read-only endpoints keep bounded local traffic counters and never mutate the database.
+
   // opportunistic sweep keeps the map from growing without a timer
   if (buckets.size > MAX_KEYS) {
     for (const [k, w] of buckets) if (w.resetAt <= now) buckets.delete(k);

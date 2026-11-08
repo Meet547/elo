@@ -12,7 +12,7 @@ const now = Date.now;
 let clock = now();
 Date.now = () => clock;
 try {
-  const players = await Promise.all(['A','B'].map(name => db.player.create({ data: { id: randomUUID(), name: `Replay fixture ${name}` } })));
+  const players = await Promise.all(['A','B'].map(name => db.player.create({ data: { id: randomUUID(), name: `Replay fixture ${name}`, nameKey: `replay fixture ${name.toLowerCase()}`, identities: {create:{provider:"google",subject:randomUUID(),email:`${name}@fixture.example`}} } })));
   await updateRankedQueue(players[0].id, 'join');
   const matched = await updateRankedQueue(players[1].id, 'join');
   assert.equal(matched?.status, 'matched');
@@ -34,9 +34,10 @@ try {
   assert.equal(room.status, 'finished');
   const before = await db.player.findUniqueOrThrow({ where: { id: players[0].id } });
   const beforeHistory = await db.session.count({ where: { playerId: players[0].id } });
-  assert.equal(before.rated, 1); assert.equal(beforeHistory, 1);
+  assert.equal(before.rankedPlacements, 1); assert.equal(before.rated, 1); assert.equal(beforeHistory, 1);
   const replay = await commandLiveRoom(code, players[0].id, room.revision, { type: 'join' });
   const after = await db.player.findUniqueOrThrow({ where: { id: players[0].id } });
+  assert.equal(after.rankedPlacements, before.rankedPlacements);
   assert.equal(after.rated, before.rated, 'F1: a completed match must not increment rated count on join replay');
   assert.equal(after.rating, before.rating, 'F1: a completed match must not apply rating again');
   assert.equal(await db.session.count({ where: { playerId: players[0].id } }), beforeHistory);

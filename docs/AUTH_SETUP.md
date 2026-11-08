@@ -12,3 +12,5 @@ This branch implements Google sign-in but does not create a Google Cloud project
 If the Google configuration is absent, profile settings explain that recovery is not yet available and the auth endpoint returns 503. Do not treat local fixture tests as a successful live provider test.
 
 Email magic links remain unavailable until an email provider and sender domain are configured. Existing local guests still rely on their current browser cookie until linked. New opaque sessions are revocable; legacy cookies are retained only for migration compatibility and are disabled for a player when that player revokes legacy sessions.
+
+Ranked now requires a verified provider identity and a claimed unique table name. Existing migrated names are preserved; owners claim an available name from profile settings. New verified ranked results advance a separate placement counter, using the existing 12-session boundary. Historical house results do not count toward these placements. Profile settings also offer owner-only data export and explicit closure; closure retains integrity history and historical snapshots and is not a claim of complete legal erasure.

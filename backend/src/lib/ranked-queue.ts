@@ -1,11 +1,14 @@
 import "server-only";
 
+import { PROVISIONAL_SESSIONS } from "@/lib/rating";
 import { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { roomRecord } from "./live-rooms";
 import { createActiveRankedMatch } from "./match-state";
 import { newRankedTable } from "@/lib/poker/live-table";
 import { chooseRankedOpponent, rankedRange, RANKED_MAX_RANGE, RANKED_PRESENCE_MS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
+
+export class RankedEligibilityError extends Error {}
 
 export type QueueCommand = "join" | "poll" | "cancel";
 
@@ -19,10 +22,15 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         // Serializable isolation protects candidate selection and both assignments.
         await tx.rankedSeat.deleteMany({ where: { roomCode: null, seenAt: { lt: cutoff } } });
         const player = await tx.player.findUnique({
-          where: { id: playerId, isSimulated: false },
-          select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
+          where: { id: playerId, isSimulated: false, deletedAt: null },
+          select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true, rankedPlacements: true, nameKey: true, identities: { select: { provider: true } } },
         });
         if (!player) return null;
+        if (command !== "cancel") {
+          if (!player.identities.length) throw new RankedEligibilityError("Connect a verified account before joining ranked.");
+          if (!player.nameKey) throw new RankedEligibilityError("Choose an available unique table name in your profile first.");
+        }
+        const poolName = player.rankedPlacements < PROVISIONAL_SESSIONS ? "PLACEMENT" : "ESTABLISHED";
 
         let seat = await tx.rankedSeat.findUnique({ where: { playerId } });
         if (seat?.roomCode) {
@@ -40,23 +48,24 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
 
         const waiting = await tx.rankedSeat.upsert({
           where: { playerId },
-          update: { seenAt: now, rating: player.rating },
-          create: { playerId, seenAt: now, joinedAt: now, rating: player.rating },
+          update: { seenAt: now, rating: player.rating, pool: poolName },
+          create: { playerId, seenAt: now, joinedAt: now, rating: player.rating, pool: poolName },
         });
         const pool = await tx.rankedSeat.findMany({
           where: {
             playerId: { not: playerId },
             roomCode: null,
+            pool: poolName,
             rating: { gte: player.rating - RANKED_MAX_RANGE, lte: player.rating + RANKED_MAX_RANGE },
           },
         });
         const candidate = chooseRankedOpponent(waiting, pool, now.getTime());
         if (candidate) {
           const opponent = await tx.player.findUnique({
-            where: { id: candidate.playerId, isSimulated: false },
-            select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
+            where: { id: candidate.playerId, isSimulated: false, deletedAt: null },
+            select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true, rankedPlacements: true, nameKey: true, identities: { select: { provider: true } } },
           });
-          if (opponent && chooseRankedOpponent(waiting, [{ ...candidate, rating: opponent.rating }], now.getTime())) {
+          if (opponent && opponent.identities.length && opponent.nameKey && (opponent.rankedPlacements < PROVISIONAL_SESSIONS ? "PLACEMENT" : "ESTABLISHED") === poolName && chooseRankedOpponent(waiting, [{ ...candidate, rating: opponent.rating }], now.getTime())) {
             const matchId = await createActiveRankedMatch(tx, [player, opponent], now);
             const table = newRankedTable(player, opponent, now.getTime());
             table.ranked!.matchId = matchId;

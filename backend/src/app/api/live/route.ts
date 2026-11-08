@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
   const player = await sessionPlayer(req);
   if (!player) return NextResponse.json({ error: "Claim an Elo profile first." }, { status: 401 });
   if (!dbEnabled) return NextResponse.json({ error: "Live rooms need a database connection." }, { status: 503 });
-  const limit = rateLimit(req, `live:create:${player}`, 8, 60_000);
+  const limit = await rateLimit(req, "live:create", 8, 60_000, player);
   if (!limit.ok) return tooMany(limit.retryAfter);
   const room = await createLiveRoom(player);
   if (!room) return NextResponse.json({ error: "Claim an Elo profile first." }, { status: 401 });

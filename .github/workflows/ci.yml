@@ -42,6 +42,10 @@ jobs:
           ELO_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
       - run: npm run test:readiness
       - run: npm run test:integration
+      - run: npm run test:profile-names
+      - run: npm run test:durable-rate-limit
+      - run: npm run test:account-management
+      - run: npm run test:ranked-eligibility
       - run: npm run test:account-sessions
       - run: npm run test:google-auth
       - run: npm run test:session-resume

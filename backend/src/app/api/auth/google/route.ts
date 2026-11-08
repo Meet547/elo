@@ -3,7 +3,7 @@ import {beginGoogle,oauthCookie} from '../../../../lib/google-auth';
 import {rateLimit,tooMany} from '../../../../lib/rate-limit';
 import {sessionPlayer} from '../../../../lib/session';
 export async function GET(req:NextRequest){
-  const limit=rateLimit(req,"auth:google",10,600_000);
+  const limit=await rateLimit(req,"auth:google",10,600_000);
   if(!limit.ok)return tooMany(limit.retryAfter);
   try{
     const {url,browser}=await beginGoogle(await sessionPlayer(req));

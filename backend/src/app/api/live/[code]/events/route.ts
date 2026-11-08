@@ -13,7 +13,7 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ code
   const code = roomCode((await params).code);
   if (!code) return NextResponse.json({ error: "Room not found." }, { status: 404 });
   if (!dbEnabled) return NextResponse.json({ error: "Live rooms need a database connection." }, { status: 503 });
-  const limit = rateLimit(req, `live:events:${player}`, 24, 60_000);
+  const limit = await rateLimit(req, `live:events:${player}`, 24, 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
   const first = await readLiveRoom(code, player);
   if (!first) return NextResponse.json({ error: "Room not found." }, { status: 404 });

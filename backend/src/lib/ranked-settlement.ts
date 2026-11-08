@@ -9,7 +9,7 @@ import { transitionMatch } from './match-state';
 class RoomRevisionConflict extends Error {}
 const snapshotSchema = z.object({ rating: z.number().finite(), rd: z.number().finite(), volatility: z.number().finite(), rated: z.int().nonnegative() });
 const ratingState = (p: Player) => ({ rating: p.rating, rd: p.rd, volatility: p.volatility, rated: p.rated,
-  peak: p.peak, hands: p.hands, cashes: p.cashes, netChips: p.netChips, biggestPot: p.biggestPot, streak: p.streak });
+  rankedPlacements: p.rankedPlacements, peak: p.peak, hands: p.hands, cashes: p.cashes, netChips: p.netChips, biggestPot: p.biggestPot, streak: p.streak });
 
 /** Player updates, unique history and unique settlement are one database commit. */
 async function writeResult(tx: Prisma.TransactionClient, matchId: string, table: LiveTable) {
@@ -32,7 +32,7 @@ async function writeResult(tx: Prisma.TransactionClient, matchId: string, table:
     const rating = applySession(before, field, seat.place);
     ratings[seat.idx] = { before: before.rating, after: rating.rating };
     const after = await tx.player.update({ where: { id: me.id }, data: {
-      rating: rating.rating, rd: rating.rd, volatility: rating.volatility, rated: { increment: 1 },
+      rating: rating.rating, rd: rating.rd, volatility: rating.volatility, rated: { increment: 1 }, rankedPlacements: { increment: 1 },
       peak: Math.max(me.peak, rating.rating), hands: { increment: RANKED_HANDS },
       cashes: { increment: seat.place === 1 ? 1 : 0 }, netChips: { increment: seat.net },
       biggestPot: Math.max(me.biggestPot, seat.biggestPot),

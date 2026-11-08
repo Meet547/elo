@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: "demo mode", demo: true }, { status: 503, headers: NO_STORE });
   }
 
-  const limit = rateLimit(req, "history", 60, 60_000);
+  const limit = await rateLimit(req, "history", 60, 60_000);
   if (!limit.ok) return tooMany(limit.retryAfter);
 
   const playerId = await sessionPlayer(req);
