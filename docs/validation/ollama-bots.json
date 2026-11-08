@@ -1,0 +1,1543 @@
+{
+  "testedAt": "2026-11-08T06:15:52.677Z",
+  "model": "gpt-oss:120b",
+  "botCount": 34,
+  "decisions": 136,
+  "passed": 136,
+  "medianMs": 773,
+  "p95Ms": 1629,
+  "maxMs": 1932,
+  "scope": "Four controlled tactical situations per persona. This checks API operation, legal actions and baseline decisions; it does not establish optimal poker play or a universal best model.",
+  "results": [
+    {
+      "bot": "osipenko",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 798,
+      "passed": true
+    },
+    {
+      "bot": "osipenko",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1645,
+      "passed": true
+    },
+    {
+      "bot": "osipenko",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 955,
+      "passed": true
+    },
+    {
+      "bot": "osipenko",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 1932,
+      "passed": true
+    },
+    {
+      "bot": "knuckleball",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 745,
+      "passed": true
+    },
+    {
+      "bot": "knuckleball",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 863,
+      "passed": true
+    },
+    {
+      "bot": "ferreira",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 700,
+      "passed": true
+    },
+    {
+      "bot": "knuckleball",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1509,
+      "passed": true
+    },
+    {
+      "bot": "ferreira",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 668,
+      "passed": true
+    },
+    {
+      "bot": "ferreira",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 691,
+      "passed": true
+    },
+    {
+      "bot": "knuckleball",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1719,
+      "passed": true
+    },
+    {
+      "bot": "ferreira",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 921,
+      "passed": true
+    },
+    {
+      "bot": "henrik",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 699,
+      "passed": true
+    },
+    {
+      "bot": "henrik",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 670,
+      "passed": true
+    },
+    {
+      "bot": "june",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 685,
+      "passed": true
+    },
+    {
+      "bot": "june",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 704,
+      "passed": true
+    },
+    {
+      "bot": "henrik",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1526,
+      "passed": true
+    },
+    {
+      "bot": "henrik",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1629,
+      "passed": true
+    },
+    {
+      "bot": "june",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 717,
+      "passed": true
+    },
+    {
+      "bot": "june",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 898,
+      "passed": true
+    },
+    {
+      "bot": "riverboat",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 662,
+      "passed": true
+    },
+    {
+      "bot": "riverboat",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 1546,
+      "passed": true
+    },
+    {
+      "bot": "riverboat",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 736,
+      "passed": true
+    },
+    {
+      "bot": "riverboat",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1584,
+      "passed": true
+    },
+    {
+      "bot": "shirokov",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 889,
+      "passed": true
+    },
+    {
+      "bot": "shirokov",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 630,
+      "passed": true
+    },
+    {
+      "bot": "shirokov",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 833,
+      "passed": true
+    },
+    {
+      "bot": "nakamura",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 734,
+      "passed": true
+    },
+    {
+      "bot": "shirokov",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1537,
+      "passed": true
+    },
+    {
+      "bot": "nakamura",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 613,
+      "passed": true
+    },
+    {
+      "bot": "bodega",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 799,
+      "passed": true
+    },
+    {
+      "bot": "nakamura",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 1481,
+      "passed": true
+    },
+    {
+      "bot": "bodega",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 703,
+      "passed": true
+    },
+    {
+      "bot": "bodega",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 690,
+      "passed": true
+    },
+    {
+      "bot": "nakamura",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1673,
+      "passed": true
+    },
+    {
+      "bot": "bodega",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 840,
+      "passed": true
+    },
+    {
+      "bot": "villanueva",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 839,
+      "passed": true
+    },
+    {
+      "bot": "villanueva",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 712,
+      "passed": true
+    },
+    {
+      "bot": "villanueva",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 628,
+      "passed": true
+    },
+    {
+      "bot": "twelvefold",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 839,
+      "passed": true
+    },
+    {
+      "bot": "twelvefold",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 668,
+      "passed": true
+    },
+    {
+      "bot": "twelvefold",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 770,
+      "passed": true
+    },
+    {
+      "bot": "villanueva",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1638,
+      "passed": true
+    },
+    {
+      "bot": "twelvefold",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1018,
+      "passed": true
+    },
+    {
+      "bot": "brennan",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 679,
+      "passed": true
+    },
+    {
+      "bot": "brennan",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 1021,
+      "passed": true
+    },
+    {
+      "bot": "okonkwo",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 853,
+      "passed": true
+    },
+    {
+      "bot": "brennan",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1570,
+      "passed": true
+    },
+    {
+      "bot": "brennan",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1622,
+      "passed": true
+    },
+    {
+      "bot": "okonkwo",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 633,
+      "passed": true
+    },
+    {
+      "bot": "okonkwo",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 718,
+      "passed": true
+    },
+    {
+      "bot": "okonkwo",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 826,
+      "passed": true
+    },
+    {
+      "bot": "vasseur",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 820,
+      "passed": true
+    },
+    {
+      "bot": "vasseur",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 650,
+      "passed": true
+    },
+    {
+      "bot": "vasseur",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 656,
+      "passed": true
+    },
+    {
+      "bot": "vasseur",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 873,
+      "passed": true
+    },
+    {
+      "bot": "coldopen",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 734,
+      "passed": true
+    },
+    {
+      "bot": "coldopen",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 702,
+      "passed": true
+    },
+    {
+      "bot": "coldopen",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 675,
+      "passed": true
+    },
+    {
+      "bot": "coldopen",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 945,
+      "passed": true
+    },
+    {
+      "bot": "tanaka",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 811,
+      "passed": true
+    },
+    {
+      "bot": "tanaka",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 652,
+      "passed": true
+    },
+    {
+      "bot": "tanaka",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 679,
+      "passed": true
+    },
+    {
+      "bot": "tanaka",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 800,
+      "passed": true
+    },
+    {
+      "bot": "helen",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 784,
+      "passed": true
+    },
+    {
+      "bot": "helen",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 780,
+      "passed": true
+    },
+    {
+      "bot": "helen",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 664,
+      "passed": true
+    },
+    {
+      "bot": "helen",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 868,
+      "passed": true
+    },
+    {
+      "bot": "aiyar",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 715,
+      "passed": true
+    },
+    {
+      "bot": "aiyar",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 704,
+      "passed": true
+    },
+    {
+      "bot": "aiyar",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 1509,
+      "passed": true
+    },
+    {
+      "bot": "aiyar",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 898,
+      "passed": true
+    },
+    {
+      "bot": "polkdot",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 799,
+      "passed": true
+    },
+    {
+      "bot": "polkdot",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 642,
+      "passed": true
+    },
+    {
+      "bot": "polkdot",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 939,
+      "passed": true
+    },
+    {
+      "bot": "rumyantsev",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 822,
+      "passed": true
+    },
+    {
+      "bot": "polkdot",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1577,
+      "passed": true
+    },
+    {
+      "bot": "rumyantsev",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 716,
+      "passed": true
+    },
+    {
+      "bot": "rumyantsev",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 780,
+      "passed": true
+    },
+    {
+      "bot": "rumyantsev",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 1464,
+      "passed": true
+    },
+    {
+      "bot": "matchbox",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 643,
+      "passed": true
+    },
+    {
+      "bot": "matchbox",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 1043,
+      "passed": true
+    },
+    {
+      "bot": "matchbox",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 633,
+      "passed": true
+    },
+    {
+      "bot": "sorensen",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 687,
+      "passed": true
+    },
+    {
+      "bot": "matchbox",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 976,
+      "passed": true
+    },
+    {
+      "bot": "sorensen",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 660,
+      "passed": true
+    },
+    {
+      "bot": "sorensen",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 701,
+      "passed": true
+    },
+    {
+      "bot": "sorensen",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 775,
+      "passed": true
+    },
+    {
+      "bot": "tinroof",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 765,
+      "passed": true
+    },
+    {
+      "bot": "tinroof",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 714,
+      "passed": true
+    },
+    {
+      "bot": "tinroof",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 701,
+      "passed": true
+    },
+    {
+      "bot": "tinroof",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 702,
+      "passed": true
+    },
+    {
+      "bot": "hallberg",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 719,
+      "passed": true
+    },
+    {
+      "bot": "hallberg",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 681,
+      "passed": true
+    },
+    {
+      "bot": "hallberg",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 678,
+      "passed": true
+    },
+    {
+      "bot": "hallberg",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 733,
+      "passed": true
+    },
+    {
+      "bot": "quartzy",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 638,
+      "passed": true
+    },
+    {
+      "bot": "quartzy",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 773,
+      "passed": true
+    },
+    {
+      "bot": "quartzy",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 1768,
+      "passed": true
+    },
+    {
+      "bot": "quartzy",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1500,
+      "passed": true
+    },
+    {
+      "bot": "mbeki",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 759,
+      "passed": true
+    },
+    {
+      "bot": "mbeki",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 616,
+      "passed": true
+    },
+    {
+      "bot": "mbeki",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 736,
+      "passed": true
+    },
+    {
+      "bot": "mbeki",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 821,
+      "passed": true
+    },
+    {
+      "bot": "slowroller",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 717,
+      "passed": true
+    },
+    {
+      "bot": "slowroller",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 716,
+      "passed": true
+    },
+    {
+      "bot": "slowroller",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 927,
+      "passed": true
+    },
+    {
+      "bot": "petrova",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 690,
+      "passed": true
+    },
+    {
+      "bot": "slowroller",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1505,
+      "passed": true
+    },
+    {
+      "bot": "petrova",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 633,
+      "passed": true
+    },
+    {
+      "bot": "petrova",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 674,
+      "passed": true
+    },
+    {
+      "bot": "petrova",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 811,
+      "passed": true
+    },
+    {
+      "bot": "gingham",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 773,
+      "passed": true
+    },
+    {
+      "bot": "gingham",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 657,
+      "passed": true
+    },
+    {
+      "bot": "gingham",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 699,
+      "passed": true
+    },
+    {
+      "bot": "gingham",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 841,
+      "passed": true
+    },
+    {
+      "bot": "duarte",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 799,
+      "passed": true
+    },
+    {
+      "bot": "duarte",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 659,
+      "passed": true
+    },
+    {
+      "bot": "duarte",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 806,
+      "passed": true
+    },
+    {
+      "bot": "fullringandy",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 819,
+      "passed": true
+    },
+    {
+      "bot": "fullringandy",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 666,
+      "passed": true
+    },
+    {
+      "bot": "duarte",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 1614,
+      "passed": true
+    },
+    {
+      "bot": "fullringandy",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 677,
+      "passed": true
+    },
+    {
+      "bot": "fullringandy",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 887,
+      "passed": true
+    },
+    {
+      "bot": "kovacs",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 804,
+      "passed": true
+    },
+    {
+      "bot": "kovacs",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 658,
+      "passed": true
+    },
+    {
+      "bot": "zhang",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 818,
+      "passed": true
+    },
+    {
+      "bot": "kovacs",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 928,
+      "passed": true
+    },
+    {
+      "bot": "kovacs",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 1488,
+      "passed": true
+    },
+    {
+      "bot": "zhang",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 674,
+      "passed": true
+    },
+    {
+      "bot": "zhang",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 694,
+      "passed": true
+    },
+    {
+      "bot": "zhang",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 853,
+      "passed": true
+    },
+    {
+      "bot": "virtanen",
+      "scenario": "take free check",
+      "expected": "check",
+      "action": {
+        "type": "check"
+      },
+      "provider": "ollama",
+      "ms": 639,
+      "passed": true
+    },
+    {
+      "bot": "virtanen",
+      "scenario": "fold weak hand versus large bet",
+      "expected": "fold",
+      "action": {
+        "type": "fold"
+      },
+      "provider": "ollama",
+      "ms": 773,
+      "passed": true
+    },
+    {
+      "bot": "virtanen",
+      "scenario": "call strong full house when raising unavailable",
+      "expected": "call",
+      "action": {
+        "type": "call"
+      },
+      "provider": "ollama",
+      "ms": 635,
+      "passed": true
+    },
+    {
+      "bot": "virtanen",
+      "scenario": "value raise royal flush",
+      "expected": "raise",
+      "action": {
+        "type": "raise",
+        "to": 1500
+      },
+      "provider": "ollama",
+      "ms": 842,
+      "passed": true
+    }
+  ]
+}

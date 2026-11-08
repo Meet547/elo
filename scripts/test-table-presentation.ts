@@ -1,0 +1,27 @@
+import assert from 'node:assert/strict';
+import { CARD_BOUNDS, BET_BOUNDS, BOARD_BOUNDS, BUTTON_POS } from '../src/lib/poker/table-layout';
+import { shortHandLabel } from '../src/lib/poker/hand-label';
+import { evaluate } from '../src/lib/poker/evaluator';
+import { HUMAN_TURN_MS, BOT_TURN_MS, BOT_CLOUD_TIMEOUT_MS } from '../src/lib/poker/turn-timing';
+import { newLiveTable, applyLiveCommand, advanceLiveTable, LIVE_CLOCK_MS, publicLiveTable } from '../src/lib/poker/live-table';
+import { legalActions } from '../src/lib/poker/engine';
+import type { Card } from '../src/lib/poker/cards';
+const overlaps=(a:{x:number;y:number;width:number;height:number},b:typeof a)=>a.x<b.x+b.width && a.x+a.width>b.x && a.y<b.y+b.height && a.y+a.height>b.y;
+for(const [index,bet] of BET_BOUNDS.entries())for(const card of [...CARD_BOUNDS,BOARD_BOUNDS])assert(!overlaps(bet,card),`seat ${index} bet overlaps a card`);
+for(const [index,p] of BUTTON_POS.entries())for(const card of [...CARD_BOUNDS,BOARD_BOUNDS])assert(!overlaps({x:p.x-13,y:p.y-13,width:26,height:26},card),`seat ${index} dealer button overlaps a card`);
+assert(!overlaps({x:76,y:226,width:170,height:88},BOARD_BOUNDS));
+assert(!overlaps({x:85,y:230,width:150,height:98},BOARD_BOUNDS),'winner banner stays beside board');
+const parse=(s:string):Card[]=>s.split(' ').map(id=>({id,r:'23456789TJQKA'.indexOf(id[0])+2,s:id[1] as Card['s']}));
+const cases:[string,string][]=[['As Ks Qs Js Ts','Royal Flush'],['9s 8s 7s 6s 5s','Straight Flush'],['Ac Ad Ah As Kd','Four Aces'],['Ac Ad Ah Kd Ks','Full House'],['As Js 8s 4s 2s','Ace High Flush'],['As Kd Qc Jh Ts','Ace High Straight'],['Ac Ad Ah Kd Qs','Three Aces'],['Ac Ad Kh Kd Qs','Two Pair'],['Ac Ad Kh Qd Js','Pair of Aces'],['Ac Kd 9h 6d 3s','Ace High']];
+for(const [cards,label] of cases){assert.equal(shortHandLabel(evaluate(parse(cards))),label);assert(label.split(' ').length<=3);}
+for(let index=1;index<cases.length;index++)assert(evaluate(parse(cases[index-1][0])).score>evaluate(parse(cases[index][0])).score,'hand rankings must match the reference order');
+assert.equal(shortHandLabel(),'Won by Fold');
+assert.equal(HUMAN_TURN_MS,20000);assert.equal(LIVE_CLOCK_MS,20000);assert.equal(BOT_TURN_MS,10000);assert(BOT_CLOUD_TIMEOUT_MS<BOT_TURN_MS);
+const players=[{id:'h',name:'Host',rating:1200},{id:'g',name:'Guest',rating:1200}];
+const table=newLiveTable(players[0]);const now=Date.now();
+applyLiveCommand(table,players[1],{type:'join'},now);applyLiveCommand(table,players[0],{type:'start'},now);
+applyLiveCommand(table,players[table.game!.toAct],{type:'act',action:{type:'call'}},now);
+assert(legalActions(table.game!,table.game!.toAct).canCheck,'regression setup: checking is free');
+const actor=table.game!.toAct;assert.equal(advanceLiveTable(table,table.nextAt!-1),false);assert(advanceLiveTable(table,table.nextAt!));assert.equal(table.game!.seats[actor].lastAction,'fold','timeout folds even when a check was free');
+const snap=publicLiveTable(table,players[0].id,'TEST',1);assert.equal(snap.game!.awards[0].hand,'Won by Fold');
+console.log('ALL PASS — all ten hand rankings, compact winner labels, no card/bet/button collisions, 10/20 second budgets, strict human timeout fold');

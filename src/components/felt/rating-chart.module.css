@@ -1,0 +1,81 @@
+.card {
+  --chart-color: var(--color-money);
+  position: relative;
+  min-width: 0;
+  align-self: start;
+  overflow: hidden;
+  font-family: var(--font-sans);
+  font-variant-numeric: tabular-nums;
+}
+.card[data-up="false"] { --chart-color: var(--color-carmine); }
+.filter { position: absolute; width: 0; height: 0; pointer-events: none; }
+.well { position: absolute; inset: 8px 0 auto; display: grid; place-items: center; overflow: hidden; pointer-events: none; }
+.goo { position: relative; width: 44px; height: 44px; color: var(--color-money); }
+.drop {
+  position: absolute;
+  left: 18px;
+  top: 18px;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: currentColor;
+  transform: rotate(var(--angle)) translateY(calc(var(--spread) * -1));
+}
+.card[data-phase="refreshing"] .goo { animation: spin 850ms linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+.sheet { position: relative; padding: 20px 24px 14px; touch-action: pan-y; user-select: none; }
+/* Pull the readout; the plot still permits ordinary vertical page scrolling. */
+.pullHandle { touch-action: none; cursor: grab; }
+.card:is([data-phase="pull"], [data-phase="armed"]) .pullHandle { cursor: grabbing; }
+.heading { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.heading h2 { font-size: 14px; font-weight: 500; color: var(--color-ink-soft); }
+.refresh {
+  display: grid;
+  place-items: center;
+  width: 44px;
+  height: 44px;
+  margin: -8px -10px -8px 0;
+  border-radius: 50%;
+  color: var(--color-ink-faint);
+  cursor: pointer;
+  touch-action: manipulation;
+}
+.refresh:hover { background: var(--color-canvas); color: var(--color-ink); }
+.refresh:disabled { opacity: 0.45; cursor: wait; }
+.refresh:focus-visible, .windows button:focus-visible, .plot:focus-visible {
+  outline: 2px solid var(--color-money);
+  outline-offset: 4px;
+}
+.value { display: flex; align-items: baseline; gap: 10px; margin-top: 8px; font-size: clamp(38px, 4.2vw, 52px); font-weight: 500; line-height: 1.15; }
+.value > span { font-size: 13px; font-weight: 400; color: var(--color-ink-faint); }
+.summary { display: flex; flex-wrap: wrap; align-items: baseline; gap: 4px 10px; min-height: 40px; margin-top: 7px; font-size: 13px; color: var(--color-ink-faint); }
+.change { font-weight: 500; white-space: nowrap; }
+.change[data-direction="up"] { color: var(--color-money); }
+.change[data-direction="down"] { color: var(--color-carmine); }
+.change[data-direction="flat"] { color: var(--color-ink-soft); }
+.when { font-size: 12px; }
+.plotFrame { margin: 12px 7px 0; }
+.plot { position: relative; height: 160px; color: var(--chart-color); cursor: crosshair; touch-action: pan-y; border-radius: 4px; }
+.plot svg { width: 100%; height: 100%; overflow: visible; }
+.guide { position: absolute; top: 0; bottom: 0; width: 1px; background: currentColor; opacity: 0.24; pointer-events: none; }
+.dot { position: absolute; width: 7px; height: 7px; border-radius: 50%; background: currentColor; transform: translate(-50%, -50%); pointer-events: none; }
+.plot[data-scrubbing="true"] .dot { width: 15px; height: 15px; border: 3px solid currentColor; background: var(--color-paper); }
+.dates { display: flex; justify-content: space-between; margin-top: 7px; font-size: 11px; color: var(--color-ink-faint); }
+.windows { position: relative; display: flex; margin-top: 20px; isolation: isolate; }
+.windowPill { position: absolute; z-index: -1; inset: 0 auto 0 0; width: calc(100% / 3); border-radius: 14px; background: var(--color-canvas); transition: transform 240ms var(--ease-arrival); }
+.windows button { flex: 1; min-width: 0; min-height: 44px; border-radius: 14px; font-size: 12px; color: var(--color-ink-faint); cursor: pointer; touch-action: manipulation; }
+.windows button[aria-pressed="true"] { color: var(--color-ink); font-weight: 500; }
+.status { display: flex; justify-content: center; align-items: center; min-height: 32px; margin-top: 7px; font-size: 10px; line-height: 1.5; text-align: center; color: var(--color-ink-faint); }
+.card[data-phase="armed"] .status { color: var(--color-money); font-weight: 600; }
+.status[data-error="true"] { color: var(--color-carmine-deep); }
+.empty { display: flex; min-height: 215px; flex-direction: column; align-items: center; justify-content: center; gap: 16px; text-align: center; font-size: 13px; color: var(--color-ink-faint); }
+@media (max-width: 420px) {
+  .sheet { padding-inline: 18px; }
+  .summary { min-height: 48px; }
+  .when { flex-basis: 100%; }
+  .status { font-size: 9px; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .card[data-phase="refreshing"] .goo { animation: none; }
+  .windowPill { transition: none; }
+}

@@ -1,0 +1,68 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Player {
+  id         String    @id @default(cuid())
+  name       String
+  rating     Int       @default(1200)
+  /// Glicko-2 rating deviation — how sure the ladder is of this rating
+  rd         Float     @default(110)
+  /// Glicko-2 volatility — how erratic recent sessions have been
+  volatility Float     @default(0.06)
+  /// rated sessions played (drives provisional status and the exposure cap)
+  rated      Int       @default(0)
+  peak       Int       @default(1200)
+  hands      Int       @default(0)
+  cashes     Int       @default(0)
+  netChips   Int       @default(0)
+  biggestPot Int       @default(0)
+  streak     Int       @default(0)
+  isRival    Boolean   @default(false)
+  createdAt  DateTime  @default(now())
+  lastSeen   DateTime  @default(now())
+  results    Session[]
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  playerId     String
+  player       Player   @relation(fields: [playerId], references: [id])
+  hands        Int
+  buyIn        Int      @default(1500)
+  finalStack   Int
+  net          Int
+  place        Int
+  seats        Int      @default(6)
+  ratingBefore Int
+  ratingAfter  Int
+  biggestPot   Int      @default(0)
+  potsWon      Int      @default(0)
+  bestHand     String?
+  exit         String?
+  createdAt    DateTime @default(now())
+}
+
+model LiveRoom {
+  code      String   @id
+  revision  Int      @default(0)
+  state     String
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model RankedSeat {
+  playerId String   @id
+  rating   Int
+  joinedAt DateTime
+  seenAt   DateTime
+  roomCode String?
+
+  @@index([roomCode, rating, joinedAt])
+}

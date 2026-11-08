@@ -1,0 +1,53 @@
+import assert from 'node:assert/strict';
+import { requestBotDecision } from '../src/lib/poker/bot-request';
+import { forwardApi } from '../src/lib/server/api-proxy';
+import { botViewSchema, cloudDecision, legalBotAction } from '../backend/src/lib/ollama';
+import { botView } from '../src/lib/poker/ai';
+import { newSession, startHand } from '../src/lib/poker/engine';
+import { parseRoomCode } from '../src/lib/room-code';
+const originalFetch=globalThis.fetch;
+const env={...process.env};
+try {
+  process.env.BACKEND_ORIGIN='https://backend.example'; process.env.BACKEND_PROXY_SECRET='proxy-secret';
+  let seen:Request | undefined;
+  globalThis.fetch=(async (url: string | URL | Request, init?:RequestInit)=>{
+    seen=new Request(url,init);
+    return new Response('data: {"ok":true}\n\n',{headers:{'content-type':'text/event-stream','set-cookie':'showdown_session=signed; HttpOnly; Secure; Path=/','retry-after':'2'}});
+  }) as typeof fetch;
+  const response=await forwardApi(new Request('https://frontend.example/api/live/ABC123/events',{headers:{cookie:'showdown_session=signed'}}),['live','ABC123','events']);
+  assert.equal(seen!.url,'https://backend.example/api/live/ABC123/events');
+  assert.equal(seen!.headers.get('x-elo-proxy-secret'),'proxy-secret');
+  assert.equal(seen!.headers.get('cookie'),'showdown_session=signed');
+  assert(response.headers.get('set-cookie')!.includes('HttpOnly'));
+  assert.equal(await response.text(),'data: {"ok":true}\n\n');
+  assert.equal((await forwardApi(new Request('https://frontend.example/api/profile',{method:'POST',headers:{origin:'https://evil.example'}}),['profile'])).status,403);
+  assert.equal((await forwardApi(new Request('https://frontend.example/api/x'),['..'])).status,400);
+  assert.equal((await forwardApi(new Request('http://localhost:3000/api/profile', {method:'POST',headers:{host:'frontend.example','x-forwarded-proto':'https',origin:'https://frontend.example'},body:'{}'}),['profile'])).status,200,'public origin survives the framework internal hostname');
+  const state=newSession(Array.from({length:2},(_,i)=>({id:String(i),name:'Bot',rating:1200,isHuman:i===0})));
+  startHand(state);
+  const view=botView(state,state.toAct);
+  assert.equal(legalBotAction({type:'raise',to:9999999},view),null);
+  const allowed=view.canCheck?{type:'check'}:{type:'call'};
+  process.env.OLLAMA_API_KEY='test-key';
+  globalThis.fetch=(async (url: string | URL | Request,init?:RequestInit)=>{
+    assert.equal(String(url),'https://ollama.com/api/chat');
+    assert.equal(new Headers(init?.headers).get('Authorization'),'Bearer test-key');
+    const body=JSON.parse(String(init?.body));
+    assert.equal(body.stream,false);
+    assert(!("format" in body),"Cloud does not support structured-output enforcement");
+    const visible=JSON.parse(body.messages[1].content);
+    assert(!('deck' in visible)); assert(!('seats' in visible));
+    return Response.json({message:{content:JSON.stringify(allowed)}});
+  }) as typeof fetch;
+  assert.equal((await cloudDecision(view)).provider,'ollama');
+  globalThis.fetch=(async ()=>Response.json({message:{content:'{"type":"raise","to":999999999}'}})) as typeof fetch;
+  assert.equal((await cloudDecision(view)).provider,'heuristic');
+  globalThis.fetch=(async ()=>{throw new Error('offline');}) as typeof fetch;
+  assert.equal((await cloudDecision(view)).provider,'heuristic');
+  assert(!('deck' in botViewSchema.parse({...view,deck:['private']})));
+  globalThis.fetch=(async ()=>{throw new DOMException('deadline','TimeoutError');}) as typeof fetch;
+  assert.equal((await requestBotDecision({...view,canCheck:true,toCall:0})).type,'fold','no bot response by deadline must fold, not check');
+  assert.equal(parseRoomCode('z9y8x7'),'Z9Y8X7');
+  assert.equal(parseRoomCode('ABC!23'),null);
+} finally { globalThis.fetch=originalFetch; process.env=env; }
+console.log('ALL PASS — API proxy, cookies, SSE, CSRF, Ollama auth, legal actions, private information boundary, outage fallback, room codes');
