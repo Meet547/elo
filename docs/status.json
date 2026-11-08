@@ -37,13 +37,19 @@
         "scripts/test-harness-isolation.mjs",
         "scripts/test-readiness.ts",
         "scripts/smoke-production.mjs"
-      ]
+      ],
+      "commit": "08415b5"
     },
     "F4": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS5",
-      "evidence": "src/lib/poker/engine.ts:318; turn 100\u2192150 short all-in, call, original bettor incorrectly canRaise=true"
+      "evidence": "src/lib/poker/engine.ts:318; turn 100\u2192150 short all-in, call, original bettor incorrectly canRaise=true",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
     },
     "F5": {
       "status": "fixed-on-branch",
@@ -109,10 +115,16 @@
       "evidence": "src/app/page.tsx:48; render.yaml:6; missing deep routes intentional in prototype but fail new route/reload requirement"
     },
     "F13": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS5/WS10",
-      "evidence": "src/lib/poker/live-table.ts:95; src/store/game.ts:743; assignment only when empty, no score comparison"
+      "evidence": "src/lib/poker/live-table.ts:95; src/store/game.ts:743; assignment only when empty, no score comparison",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "reason": "Scored best-seen and best-winning mechanics implemented; private/practice history persistence remains F8/WS12"
     },
     "A1": {
       "status": "open",
@@ -121,16 +133,26 @@
       "evidence": "backend/src/app/api/bots/decide/route.ts:11; src/lib/poker/bot-request.ts:10; schema validation is not authoritative game-state verification"
     },
     "A2": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS5",
-      "evidence": "src/lib/poker/live-table.ts:106; src/store/game.ts:670; user now explicitly requires check-when-legal"
+      "evidence": "src/lib/poker/live-table.ts:106; src/store/game.ts:670; user now explicitly requires check-when-legal",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
     },
     "A3": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS5",
-      "evidence": "src/lib/poker/engine.ts:80,194; src/lib/poker/live-table.ts:53; hand 9 becomes 15/30; approved replacement fixed 10/20"
+      "evidence": "src/lib/poker/engine.ts:80,194; src/lib/poker/live-table.ts:53; hand 9 becomes 15/30; approved replacement fixed 10/20",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
     },
     "A4": {
       "status": "open",

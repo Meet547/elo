@@ -10,6 +10,7 @@ import { create } from "zustand";
 import { resumeProfile } from "@/lib/session-resume";
 import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
 import { requestBotDecision } from "@/lib/poker/bot-request";
+import type { HandValue } from "@/lib/poker/evaluator";
 import { shortHandLabel } from "@/lib/poker/hand-label";
 import {
   BotAction,
@@ -196,6 +197,8 @@ interface FeltState {
   cashOutQueued: boolean;
   sessionBiggestPot: number;
   sessionBestHand?: string;
+  sessionBestSeen?: HandValue;
+  sessionBestWinning?: HandValue;
   /** pots the human took down this session */
   sessionPotsWon: number;
   /** how the human's stack reached zero, if it did */
@@ -440,6 +443,8 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
       bustOrder: [],
       sessionBiggestPot: 0,
       sessionBestHand: undefined,
+      sessionBestSeen: undefined,
+      sessionBestWinning: undefined,
       sessionPotsWon: 0,
       humanBust: null,
       lastProof: null,
@@ -683,7 +688,7 @@ function startShotClock() {
       const st = useFelt.getState();
       const s = st.game;
       if (!s || !st.awaitingHuman) return;
-      const act = { type: "fold" as const };
+      const act: BotAction = { type: legalActions(s, humanSeat(s).idx).canCheck ? "check" : "fold" };
       applyAndSound(s, humanSeat(s).idx, act);
       useFelt.setState({ awaitingHuman: false, legal: null, shotClock: -1, turn: null });
       bump();
@@ -741,6 +746,10 @@ function tick() {
   if (s.phase === "showdown") {
     playSweep();
     const awards = s.awards ?? [];
+    const seen = humanSeat(s).revealed;
+    if (seen && (!useFelt.getState().sessionBestSeen || seen.score > useFelt.getState().sessionBestSeen!.score)) {
+      useFelt.setState({ sessionBestSeen: seen });
+    }
     if (awards.length) {
       const human = humanSeat(s);
       if (awards.some((a) => a.seatIdx === human.idx)) playWin();
@@ -756,8 +765,8 @@ function tick() {
       });
       for (const a of awards) {
         const seat = s.seats[a.seatIdx];
-        if (seat.isHuman && a.hand && !useFelt.getState().sessionBestHand) {
-          useFelt.setState({ sessionBestHand: a.hand.name });
+        if (seat.isHuman && a.hand && (!useFelt.getState().sessionBestWinning || a.hand.score > useFelt.getState().sessionBestWinning!.score)) {
+          useFelt.setState({ sessionBestHand: a.hand.name, sessionBestWinning: a.hand });
         }
       }
     }
@@ -769,6 +778,10 @@ function tick() {
   if (s.phase === "hand-end") {
     playSweep();
     const awards = s.awards ?? [];
+    const seen = humanSeat(s).revealed;
+    if (seen && (!useFelt.getState().sessionBestSeen || seen.score > useFelt.getState().sessionBestSeen!.score)) {
+      useFelt.setState({ sessionBestSeen: seen });
+    }
     if (awards.length) {
       const a = awards[0];
       const seat = s.seats[a.seatIdx];

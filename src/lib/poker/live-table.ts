@@ -7,6 +7,7 @@ import {
   type BotAction,
   type GameState,
 } from "./engine";
+import type { HandValue } from "./evaluator";
 import { shortHandLabel } from "./hand-label";
 import { HUMAN_TURN_MS } from "./turn-timing";
 import { RANKED_HANDS } from "./ranked-match";
@@ -21,6 +22,8 @@ interface LivePlayer {
   biggestPot: number;
   potsWon: number;
   bestHand: string | null;
+  bestSeen?: HandValue;
+  bestWinning?: HandValue;
 }
 
 export interface LiveTable {
@@ -65,7 +68,7 @@ function seatPlayer({ id, name, rating }: Identity): LivePlayer {
 }
 
 function startTable(table: LiveTable, now: number) {
-  table.game = newSession(table.players.map((player) => ({ ...player, isHuman: true })));
+  table.game = newSession(table.players.map((player) => ({ ...player, isHuman: true })), table.ranked ? { fixedBlinds: [10, 20] } : {});
   table.status = "playing";
   nextHand(table, now);
 }
@@ -89,11 +92,18 @@ function scheduleDecision(table: LiveTable, now: number, dealing = false) {
     table.nextAt = now + LIVE_CLOCK_MS + (dealing ? 950 : 0);
     return;
   }
+  for (const seat of game.seats) {
+    const player = table.players[seat.idx];
+    if (seat.revealed && (!player.bestSeen || seat.revealed.score > player.bestSeen.score)) player.bestSeen = seat.revealed;
+  }
   for (const award of game.awards ?? []) {
     const player = table.players[award.seatIdx];
     player.potsWon++;
     player.biggestPot = Math.max(player.biggestPot, award.amount);
-    if (award.hand && !player.bestHand) player.bestHand = award.hand.name;
+    if (award.hand && (!player.bestWinning || award.hand.score > player.bestWinning.score)) {
+      player.bestWinning = award.hand;
+      player.bestHand = award.hand.name;
+    }
   }
   table.nextAt = now + (game.phase === "showdown" ? 4_000 : 2_200);
 }
@@ -104,7 +114,7 @@ export function advanceLiveTable(table: LiveTable, now: number): boolean {
   if (table.status !== "playing" || !game || table.nextAt === null || now < table.nextAt) return false;
 
   if (game.phase === "betting") {
-    const action = "fold";
+    const action = legalActions(game, game.toAct).canCheck ? "check" : "fold";
     applyAction(game, game.toAct, { type: action });
     scheduleDecision(table, now);
     return true;

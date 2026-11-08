@@ -44,6 +44,8 @@ async function writeResult(tx: Prisma.TransactionClient, matchId: string, table:
       finalStack: seat.stack, net: seat.net, place: seat.place,
       ratingBefore: before.rating, ratingAfter: rating.rating, biggestPot: seat.biggestPot,
       potsWon: seat.potsWon, bestHand: seat.bestHand,
+      bestSeenHand: seat.bestSeen?.name, bestSeenScore: seat.bestSeen?.score,
+      bestWinningHand: seat.bestWinning?.name, bestWinningScore: seat.bestWinning?.score,
       exit: seat.place === 0 ? 'Ranked draw · 10 hands' : `Ranked ${seat.place === 1 ? 'win' : 'loss'} · 10 hands · total chip profit`,
     } });
     changes.push({ playerId: me.id, place: seat.place, net: seat.net, before: ratingState(me), after: ratingState(after) });

@@ -58,7 +58,7 @@ Practice bots request Ollama decisions using only their own hole cards, public
 board, and legal betting bounds. Invalid output, rate limits, missing credentials,
 and the 8-second Cloud timeout use the local heuristic. If no decision reaches the
 browser within 10 seconds, the bot folds. Practice never changes ranked ratings.
-Human players have 20 seconds and automatically fold on expiry, including free-check turns.
+Human players have 20 seconds and automatically check on expiry when checking is free, otherwise fold.
 The default Cloud model is GPT-OSS 120B with low reasoning effort.
 
 Live acceptance checks (require your own key; these are not run by CI):

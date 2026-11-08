@@ -27,7 +27,9 @@
     "test:google-auth": "bun scripts/test-auth-proxy.ts && node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-google-auth.ts",
     "test:harness-isolation": "node scripts/with-test-postgres.mjs node scripts/test-harness-isolation.mjs",
     "test:legacy-import": "node scripts/with-test-postgres.mjs node scripts/test-legacy-import.mjs",
-    "test:readiness": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-readiness.ts"
+    "test:readiness": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-readiness.ts",
+    "test:engine-rules": "bun scripts/test-engine-rules.ts",
+    "test:engine-invariants": "bun scripts/test-engine-invariants.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

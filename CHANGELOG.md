@@ -33,3 +33,11 @@
 - Rehearsed the approved local history copy: 47 players, 235 history rows and one private room preserved exactly.
 - Isolated shared-CI test commands into separate databases; added a regression for fixture leakage.
 - Split liveness/readiness and require a completed schema migration. Updated Render Blueprint for free external-Postgres hosting with automatic deployment off pending cutover.
+
+### WS5 — betting, deadlines and hand records
+
+- Corrected street-local reopening after short/cumulative all-ins; fixed ranked blinds at 10/20 for ten hands.
+- Changed human timeout to check when legal, otherwise fold, in live and practice.
+- Separated scored best-seen/best-winning records and persisted ranked descriptions/scores.
+- Fixed a newly reproduced side-pot chip-loss path and excluded uncalled refunds from pot-win records.
+- Added independent pot/odd-chip cases and 100,000 seeded hand invariants with exact replay checks.

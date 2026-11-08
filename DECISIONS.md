@@ -51,3 +51,7 @@ New sessions use hashed opaque random credentials stored in Postgres. Legacy HMA
 ## D013 — migration rehearsal is separate from live cutover
 
 Only loopback elo_test import targets are supported until live cutover is explicitly prepared. A read-only local SQLite backup is a rehearsal source, not evidence of current production completeness. Legacy history retains IDs and values and is classified LEGACY; unsupported ranked live-room mappings cause refusal rather than silent loss. Restore verification uses a fresh isolated database and matching Postgres tools. The free Render Blueprint has no persistent disk and automatic deploys are off while storage cutover remains pending.
+
+## D014 — approved game-rule and hand-record corrections
+
+Reopening uses a player's last street action level and the last full raise, including cumulative short all-ins. Ranked blinds stay 10/20 for all ten hands, while other existing schedules remain unchanged. Human expiry checks when legal and folds only when facing a bet. Best seen means evaluated showdown hands including losses; best winning is separate, scored and never downgraded by a weaker result. Uncalled chips are refunds, not won pots. A lone fully matched player versus all-ins runs out immediately so an already uncontested side pot cannot be folded away.

@@ -52,6 +52,10 @@ model Session {
   ratingAfter  Int
   biggestPot   Int      @default(0)
   potsWon      Int      @default(0)
+  bestSeenHand String?
+  bestSeenScore Int?
+  bestWinningHand String?
+  bestWinningScore Int?
   bestHand     String?
   exit         String?
   createdAt    DateTime @default(now())
