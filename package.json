@@ -14,7 +14,7 @@
     "build:backend": "node scripts/prepare-backend.mjs && next build backend/.app --webpack",
     "dev:backend": "node scripts/prepare-backend.mjs && next dev backend/.app --webpack -p 4000",
     "start:backend": "node scripts/start-backend.mjs",
-    "test": "bun scripts/test-engine.ts && bun scripts/test-evaluator.ts && bun scripts/test-rating.ts && bun scripts/test-rating-chart.ts && bun scripts/test-table.ts && bun scripts/test-live.ts && bun scripts/test-ranked.ts && bun scripts/test-production.ts"
+    "test": "bun scripts/test-engine.ts && bun scripts/test-evaluator.ts && bun scripts/test-rating.ts && bun scripts/test-rating-chart.ts && bun scripts/test-table-presentation.ts && bun scripts/test-table.ts && bun scripts/test-live.ts && bun scripts/test-ranked.ts && bun scripts/test-production.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

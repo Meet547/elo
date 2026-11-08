@@ -57,7 +57,19 @@ npm run dev
 Open http://localhost:3000. The browser always calls the frontend origin.
 Practice bots request Ollama decisions using only their own hole cards, public
 board, and legal betting bounds. Invalid output, rate limits, missing credentials,
-and timeouts fall back to the local heuristic. Practice never changes ranked ratings.
+and the 8-second Cloud timeout use the local heuristic. If no decision reaches the
+browser within 10 seconds, the bot folds. Practice never changes ranked ratings.
+Human players have 20 seconds and automatically fold on expiry, including free-check turns.
+The default Cloud model is GPT-OSS 120B with low reasoning effort.
+
+Live acceptance checks (require your own key; these are not run by CI):
+
+```sh
+OLLAMA_API_KEY=your-key bun scripts/test-ollama-live.ts
+```
+
+See `docs/validation/ollama-bots.json` for the recorded 34-persona, 136-decision
+acceptance run. These controlled situations do not prove optimal poker play.
 
 ## Verify
 

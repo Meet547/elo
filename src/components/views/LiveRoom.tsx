@@ -17,6 +17,7 @@ import { Dialog, DialogContent, DialogDescription, DialogTitle, DialogTrigger } 
 import { CardSlot, FanHand, PlayingCard } from "@/components/felt/playing-card";
 import { ShuffleFX } from "@/components/felt/shuffle";
 import { useFelt } from "@/store/game";
+import { HUMAN_TURN_MS } from "@/lib/poker/turn-timing";
 import { verifyDeck } from "@/lib/poker/cards";
 import { boardCardDelay, holeCardDelay, isRunout } from "@/lib/poker/deal-timing";
 import { LIVE_CAPACITY, type LiveCommand, type LiveSnapshot } from "@/lib/poker/live-table";
@@ -343,7 +344,7 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
   }, [game.handNo]);
   const dealing = game.phase === "betting" && game.handNo !== dealtHand && game.board.length === 0;
   const runout = isRunout(game.log);
-  const deadline = room.nextAt ? Math.max(0, Math.min(30, Math.ceil((room.nextAt - now) / 1000))) : 0;
+  const deadline = room.nextAt ? Math.max(0, Math.min(HUMAN_TURN_MS / 1000, Math.ceil((room.nextAt - now) / 1000))) : 0;
   const active = room.seats[game.toAct];
   const award = game.awards[0];
   const winner = award ? room.seats[award.seatIdx] : null;
@@ -370,7 +371,7 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
         <div className={compact ? "compact-stage" : "space-y-4"}>
           <div className={compact ? "compact-seats" : "grid grid-cols-2 gap-2 sm:grid-cols-3"}>
             {room.seats.filter((seat) => !compact || seat.idx !== room.me).map((seat) => {
-              const detail = seat.out ? "Out" : seat.folded ? "Folded" : seat.allIn ? "All-in" : seat.lastAction;
+              const detail = game.awards.find(award => award.seatIdx === seat.idx)?.hand ?? (seat.out ? "Out" : seat.folded ? "Folded" : seat.allIn ? "All-in" : seat.lastAction);
               if (compact) return (
                 <CompactSeat key={seat.idx} name={seat.name} stack={seat.stack} cards={holeCards(seat, 25)}
                   dealer={seat.idx === game.button} active={seat.idx === game.toAct} muted={seat.out || seat.folded}
@@ -396,7 +397,7 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
               {dealing && <motion.div className="pointer-events-none absolute inset-0 z-20" exit={{ opacity: 0 }}><ShuffleFX /></motion.div>}
             </AnimatePresence>
             <div className={cn("relative flex w-full items-center justify-center gap-2", !compact && "mb-3")}>
-              <span className="whitespace-nowrap font-mono text-[10px] uppercase r text-[#ece5cc]">
+              <span className="whitespace-nowrap font-mono text-[10px] uppercase text-[#ece5cc]">
                 {compact ? `Hand ${game.handNo}${room.ranked ? "/10" : ""} · ${game.sb}/${game.bb}` : `Hand ${game.handNo}${room.ranked ? " of 10" : ""} · Blinds ${game.sb}/${game.bb} · ${game.street}`}
               </span>
               {compact && <span className="tnum flex min-h-7 items-center gap-1.5 rounded-full bg-paper px-2 text-xs font-semibold">
@@ -409,7 +410,7 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
                 const card = game.board[idx];
                 return card ? (
                   <PlayingCard key={`${game.handNo}-${card.id}`} card={card} width="100%" deal flip
-                    dealDelay={boardCardDelay(idx, runout)} flipDelay={boardCardDelay(idx, runout)} from={{ x: 0, y: -24 }} />
+                    dealDelay={boardCardDelay(idx, runout)} flipDelay={boardCardDelay(idx, runout)} from={{ x: 0, y: -6 }} />
                 ) : <CardSlot key={idx} width="100%" />;
               })}
             </div>
@@ -418,8 +419,8 @@ function LiveFelt({ room, compact, busy, send, connected, error }: {
               <AnimatePresence mode="wait">
                 <motion.span key={winner ? `${game.handNo}-${winner.idx}` : "pot"} initial={{ opacity: 0, y: 4 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -3 }}
                   transition={{ delay: winner && runout ? 1.75 : 0 }}
-                  className={compact ? "max-w-full truncate px-1" : "rounded-full bg-paper px-3 py-1 text-sm font-semibold"}>
-                  {winner ? `${winner.name} wins ${dollars(award.amount)}` : compact ? game.street === "preflop" ? "Pre-flop" : game.street : `Pot ${dollars(game.pot)}`}
+                  className={compact ? "max-w-full break-words px-1" : "max-w-full rounded-full bg-paper px-3 py-1 text-center text-sm font-semibold"}>
+                  {winner ? `${winner.name} · ${award.hand} · ${dollars(award.amount)}` : compact ? game.street === "preflop" ? "Pre-flop" : game.street : `Pot ${dollars(game.pot)}`}
                 </motion.span>
               </AnimatePresence>
             </div>

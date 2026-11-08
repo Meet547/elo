@@ -7,6 +7,9 @@
 // ---------------------------------------------------------------------------
 
 import { create } from "zustand";
+import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
+import { requestBotDecision } from "@/lib/poker/bot-request";
+import { shortHandLabel } from "@/lib/poker/hand-label";
 import {
   BotAction,
   GameState,
@@ -19,7 +22,7 @@ import {
   newSession,
   startHand,
 } from "@/lib/poker/engine";
-import { ROSTER, botDecide, botThinkTime, botView, type RosterBot } from "@/lib/poker/ai";
+import { ROSTER, botView, type RosterBot } from "@/lib/poker/ai";
 import { buildTableOffer, type TableOffer } from "@/lib/matchmaking";
 import {
   buildLocalLadder,
@@ -218,7 +221,7 @@ interface FeltActions {
 }
 
 const RECENT_KEY = "felt_recent_tables";
-const HUMAN_CLOCK_MS = 30000;
+const HUMAN_CLOCK_MS = HUMAN_TURN_MS;
 
 /** A seat must see this many full hands before the chips can leave the table. */
 export const CASH_OUT_MIN_HANDS = 10;
@@ -651,15 +654,18 @@ function stopShotClock() {
 
 function startShotClock() {
   stopShotClock();
+  const deadline = Date.now() + HUMAN_CLOCK_MS;
+  let lastSecond = HUMAN_CLOCK_MS / 1000;
   shotInterval = setInterval(() => {
-    const left = useFelt.getState().shotClock;
+    const left = Math.max(0, Math.ceil((deadline - Date.now()) / 1000));
+    if (left === lastSecond) return;
+    lastSecond = left;
     if (left <= 0) {
       stopShotClock();
       const st = useFelt.getState();
       const s = st.game;
       if (!s || !st.awaitingHuman) return;
-      const la = st.legal;
-      const act = la?.canCheck ? { type: "check" as const } : { type: "fold" as const };
+      const act = { type: "fold" as const };
       applyAndSound(s, humanSeat(s).idx, act);
       useFelt.setState({ awaitingHuman: false, legal: null, shotClock: -1, turn: null });
       bump();
@@ -667,8 +673,8 @@ function startShotClock() {
       return;
     }
     if (left <= 5) playTick(left <= 3);
-    useFelt.setState({ shotClock: left - 1 });
-  }, 1000);
+    useFelt.setState({ shotClock: left });
+  }, 100);
 }
 
 function tick() {
@@ -695,25 +701,13 @@ function tick() {
     // the view is frozen now — the bot decides only from what it can see at
     // the moment the clock starts, never from anything that happens after
     const view = botView(s, s.toAct);
-    const think = botThinkTime(view);
-    useFelt.setState({ turn: { seat: seat.idx, duration: think, start: Date.now() } });
+    const think = 0;
+    useFelt.setState({ turn: { seat: seat.idx, duration: BOT_TURN_MS, start: Date.now() } });
     const actor = s.toAct;
     const hand = s.handNo;
     schedule(() => {
       void (async () => {
-        let action = botDecide(view);
-        try {
-          const response = await fetch("/api/bots/decide", {
-            method: "POST", headers: { "Content-Type": "application/json" },
-            body: JSON.stringify(view), signal: AbortSignal.timeout(6500),
-          });
-          if (response.ok) {
-            const data = await response.json();
-            const candidate = data.action as BotAction;
-            if (candidate && (candidate.type === "fold" || (candidate.type === "check" && view.canCheck) || (candidate.type === "call" && view.toCall > 0) ||
-              (candidate.type === "raise" && Number.isInteger(candidate.to) && candidate.to >= view.minRaiseTo && candidate.to <= view.maxRaiseTo && view.canRaise))) action = candidate;
-          }
-        } catch { /* Offline or Cloud timeout: the unranked practice hand continues. */ }
+        const action = await requestBotDecision(view);
         const g = useFelt.getState().game;
         // Responses from a hand/table that was left must never act on a new one.
         if (g !== s || g.phase !== "betting" || g.handNo !== hand || g.toAct !== actor) return;
@@ -736,7 +730,7 @@ function tick() {
       const humanPots = awards.filter((x) => s.seats[x.seatIdx].isHuman).map((x) => x.amount);
       const humanWins = humanPots.length;
       useFelt.setState({
-        lastWinner: { name: s.seats[a.seatIdx].name, amount: a.amount, text: a.hand?.name },
+        lastWinner: { name: s.seats[a.seatIdx].name, amount: a.amount, text: shortHandLabel(a.hand) },
         sessionBiggestPot: humanPots.length
           ? Math.max(useFelt.getState().sessionBiggestPot, ...humanPots)
           : useFelt.getState().sessionBiggestPot,
@@ -762,7 +756,7 @@ function tick() {
       const seat = s.seats[a.seatIdx];
       if (seat.isHuman) playWin();
       useFelt.setState({
-        lastWinner: { name: seat.name, amount: a.amount },
+        lastWinner: { name: seat.name, amount: a.amount, text: shortHandLabel(a.hand) },
         sessionBiggestPot: seat.isHuman
           ? Math.max(useFelt.getState().sessionBiggestPot, a.amount)
           : useFelt.getState().sessionBiggestPot,

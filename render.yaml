@@ -24,4 +24,4 @@ services:
       - key: OLLAMA_API_KEY
         sync: false
       - key: OLLAMA_MODEL
-        value: gemma4:31b
+        value: gpt-oss:120b

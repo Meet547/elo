@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict';
+import { requestBotDecision } from '../src/lib/poker/bot-request';
 import { forwardApi } from '../src/lib/server/api-proxy';
 import { botViewSchema, cloudDecision, legalBotAction } from '../backend/src/lib/ollama';
 import { botView } from '../src/lib/poker/ai';
@@ -44,6 +45,8 @@ try {
   globalThis.fetch=(async ()=>{throw new Error('offline');}) as typeof fetch;
   assert.equal((await cloudDecision(view)).provider,'heuristic');
   assert(!('deck' in botViewSchema.parse({...view,deck:['private']})));
+  globalThis.fetch=(async ()=>{throw new DOMException('deadline','TimeoutError');}) as typeof fetch;
+  assert.equal((await requestBotDecision({...view,canCheck:true,toCall:0})).type,'fold','no bot response by deadline must fold, not check');
   assert.equal(parseRoomCode('z9y8x7'),'Z9Y8X7');
   assert.equal(parseRoomCode('ABC!23'),null);
 } finally { globalThis.fetch=originalFetch; process.env=env; }

@@ -7,9 +7,11 @@ import {
   type BotAction,
   type GameState,
 } from "./engine";
+import { shortHandLabel } from "./hand-label";
+import { HUMAN_TURN_MS } from "./turn-timing";
 import { RANKED_HANDS } from "./ranked-match";
 
-export const LIVE_CLOCK_MS = 30_000;
+export const LIVE_CLOCK_MS = HUMAN_TURN_MS;
 export const LIVE_CAPACITY = 6;
 
 interface LivePlayer {
@@ -101,7 +103,7 @@ export function advanceLiveTable(table: LiveTable, now: number): boolean {
   if (table.status !== "playing" || !game || table.nextAt === null || now < table.nextAt) return false;
 
   if (game.phase === "betting") {
-    const action = legalActions(game, game.toAct).canCheck ? "check" : "fold";
+    const action = "fold";
     applyAction(game, game.toAct, { type: action });
     scheduleDecision(table, now);
     return true;
@@ -216,7 +218,7 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
       handNo: g.handNo, phase: g.phase, street: g.street, button: g.button,
       toAct: g.toAct, sb: g.sb, bb: g.bb, pot: g.collected + g.seats.reduce((sum, s) => sum + s.bet, 0),
       board: g.board, deckCommit: g.deckCommit, deckSeed: revealed ? g.deckSeed : null,
-      log: g.log.slice(-24), awards: g.awards?.map((a) => ({ seatIdx: a.seatIdx, amount: a.amount, hand: a.hand?.name })) ?? [],
+      log: g.log.slice(-24), awards: g.awards?.map((a) => ({ seatIdx: a.seatIdx, amount: a.amount, hand: shortHandLabel(a.hand) })) ?? [],
       legal: g.phase === "betting" && g.toAct === me ? legalActions(g, me) : null,
     } : null,
     standings: liveStandings(table).map(({ idx, name, place, stack, net }) => ({ idx, name, place, stack, net })),

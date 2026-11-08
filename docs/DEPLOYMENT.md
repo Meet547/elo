@@ -15,11 +15,11 @@ The liveness/readiness endpoint is `/api/health` (200 when the database is reach
 All other endpoints require the secret header set by the Vercel bridge.
 
 Set `OLLAMA_API_KEY` to your own key from https://ollama.com/settings/keys.
-`OLLAMA_MODEL` defaults to `gemma4:31b`; choose an available model from
+`OLLAMA_MODEL` defaults to `gpt-oss:120b`; choose an available model from
 https://ollama.com/api/tags when changing it. The adapter uses
 `https://ollama.com/api/chat`, bearer authentication, non-streaming JSON replies,
 prompted JSON parsed and validated locally (Cloud does not support the local API’s
-structured-output `format` option), a 5.5 second timeout, four concurrent requests, and a process-wide request budget.
+structured-output `format` option), an 8 second timeout, four concurrent requests, and a process-wide request budget.
 [Ollama Cloud does not support structured-output enforcement](https://docs.ollama.com/capabilities/structured-outputs); the adapter validates the prompted JSON locally.
 Ollama failures never become illegal poker actions or block the practice table.
 No real Cloud call is included in CI, so verify the key/model with one practice hand.

@@ -11,6 +11,8 @@
 
 import { CASH_OUT_MIN_HANDS, useFelt, type TurnClock } from "@/store/game";
 import { displayPot, type GameState, type Seat } from "@/lib/poker/engine";
+import { shortHandLabel } from "@/lib/poker/hand-label";
+import { TABLE_W, TABLE_H, DECK, POT, SEAT_POS, CARD_POS, BET_POS, BUTTON_POS } from "@/lib/poker/table-layout";
 import { evaluate } from "@/lib/poker/evaluator";
 import { verifyDeck } from "@/lib/poker/cards";
 import { boardCardDelay, holeCardDelay, isRunout } from "@/lib/poker/deal-timing";
@@ -29,50 +31,6 @@ import { useEffect, useLayoutEffect, useRef, useState } from "react";
 // ---------------------------------------------------------------- layout ---
 // Stage coordinates. The rail is 940×452 centred at (500, 300); plates live
 // outside it, cards and bets live on the felt.
-const TABLE_W = 1000;
-const TABLE_H = 600;
-const DECK = { x: 500, y: 279 }; // the deck lives at the centre of the felt
-const POT = { x: 118, y: 252 }; // where swept chips collect, left of the board
-
-// nameplate centres — all six sit OUTSIDE the rail
-const SEAT_POS: { x: number; y: number }[] = [
-  { x: 500, y: 566 }, // you, below the rail
-  { x: 894, y: 504 }, // bottom-right corner, outside the curve
-  { x: 806, y: 56 }, // top-right, above the rail
-  { x: 500, y: 30 }, // top-centre, above the rail
-  { x: 194, y: 56 }, // top-left, above the rail
-  { x: 106, y: 504 }, // bottom-left corner, outside the curve
-];
-
-// where each seat's hole cards rest on the felt
-const CARD_POS: { x: number; y: number }[] = [
-  { x: 500, y: 452 }, // you
-  { x: 872, y: 392 },
-  { x: 806, y: 176 },
-  { x: 500, y: 138 },
-  { x: 194, y: 176 },
-  { x: 128, y: 392 },
-];
-
-// where each seat's street bet sits on the felt, between cards and pot
-const BET_POS: { x: number; y: number }[] = [
-  { x: 500, y: 374 },
-  { x: 742, y: 336 },
-  { x: 688, y: 210 },
-  { x: 500, y: 190 },
-  { x: 312, y: 210 },
-  { x: 258, y: 336 },
-];
-
-const BUTTON_POS: { x: number; y: number }[] = [
-  { x: 608, y: 444 },
-  { x: 802, y: 400 },
-  { x: 742, y: 142 },
-  { x: 566, y: 142 },
-  { x: 258, y: 142 },
-  { x: 198, y: 400 },
-];
-
 // flight vector from the deck to each seat's resting cards (deck − rest)
 const DEAL_FROM: { x: number; y: number }[] = CARD_POS.map((p) => ({
   x: DECK.x - p.x,
@@ -281,6 +239,8 @@ function SeatStatus({ s, seat, isYou, awaitingHuman, shotClock }: {
   awaitingHuman: boolean;
   shotClock: number;
 }) {
+  const award = (s.phase === "showdown" || s.phase === "hand-end") && s.awards?.find(item => item.seatIdx === seat.idx);
+  if (award) return <span className="truncate text-[9px] font-semibold text-money">{shortHandLabel(award.hand)}</span>;
   if (seat.out) return <span className="font-mono text-[9px] uppercase text-ink-faint">busted</span>;
   if (isYou && awaitingHuman) {
     return (
@@ -379,7 +339,7 @@ function CompactFelt({
               active={active} muted={seat.out || (seat.folded && !revealed)}
               winner={showdown && s.awards?.some((award) => award.seatIdx === seat.idx)}
               bet={seat.folded ? 0 : seat.bet}
-              detail={<span className="truncate text-ink-soft">{seat.out ? "Out" : seat.folded ? "Folded" : seat.allIn ? "All-in" : active ? "Acting" : seat.lastAction}</span>}
+              detail={<span className="truncate text-ink-soft">{showdown && s.awards?.some(award => award.seatIdx === seat.idx) ? shortHandLabel(s.awards.find(award => award.seatIdx === seat.idx)?.hand) : seat.out ? "Out" : seat.folded ? "Folded" : seat.allIn ? "All-in" : active ? "Acting" : seat.lastAction}</span>}
               cards={!seat.out && !shuffling && seat.cards.map((card, i) => (
                 <PlayingCard key={`${s.handNo}-${i}`} card={card} width={25} faceDown={!revealed}
                   flip={revealed} flipDelay={(runout ? 1_300 : 0) + i * 90} deal
@@ -414,8 +374,8 @@ function CompactFelt({
           <AnimatePresence mode="wait">
             {(result || levelToast) && (
               <motion.span key={result ? `result-${s.handNo}` : levelToast} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-                className="max-w-full truncate px-1" transition={{ delay: result && runout ? 1.75 : 0 }}>
-                {result ? `${result.name} takes ${chipsLabel(result.amount)}` : levelToast}
+                className="max-w-full break-words px-1" transition={{ delay: result && runout ? 1.75 : 0 }}>
+                {result ? `${result.name} · ${result.text ?? "Won by Fold"} · ${chipsLabel(result.amount)}` : levelToast}
               </motion.span>
             )}
           </AnimatePresence>
@@ -501,7 +461,7 @@ export function TableView() {
     s.phase !== "hand-end"
   ) {
     try {
-      myHandText = evaluate([...human.cards, ...s.board]).name.toLowerCase();
+      myHandText = shortHandLabel(evaluate([...human.cards, ...s.board]));
     } catch {
       myHandText = null;
     }
@@ -732,7 +692,7 @@ export function TableView() {
                           flip
                           dealDelay={boardCardDelay(i, runout)}
                           flipDelay={boardCardDelay(i, runout)}
-                          from={{ x: 0, y: 53 }}
+                          from={{ x: 0, y: -16 }}
                         />
                       ) : (
                         <CardSlot width={90} />
@@ -780,8 +740,7 @@ export function TableView() {
                         className="absolute flex -translate-x-1/2 -translate-y-1/2 flex-col items-center gap-1"
                         style={{ left: pos.x, top: pos.y }}
                         initial={{
-                          x: SEAT_POS[seat.idx].x - pos.x,
-                          y: SEAT_POS[seat.idx].y - pos.y,
+                          y: -4,
                           opacity: 0,
                           scale: 0.85,
                           rotate: seat.idx % 2 === 0 ? -3 : 3,
@@ -794,8 +753,6 @@ export function TableView() {
                             latest.phase === "showdown" ||
                             latest.phase === "hand-end"
                               ? {
-                                  x: POT.x - pos.x,
-                                  y: POT.y - pos.y,
                                   opacity: 0,
                                   scale: 0.78,
                                   rotate: seat.idx % 2 === 0 ? 5 : -5,
@@ -832,17 +789,15 @@ export function TableView() {
                 ) : null}
               </AnimatePresence>
 
-              {/* the pot pushed to the winner — it lands on their cards */}
+              {/* Payout chips stay in the reserved bet zone, clear of every card. */}
               <AnimatePresence>
                 {(showdown || handEnd) && lastWinner && winnerSeat ? (
                   <motion.div
                     key={`take-${s.handNo}`}
                     className="absolute z-30"
-                    style={{ left: POT.x, top: POT.y }}
-                    initial={{ x: 0, y: 0, opacity: 0, scale: 0.8 }}
+                    style={{ left: BET_POS[winnerSeat.idx].x - 12, top: BET_POS[winnerSeat.idx].y - 20 }}
+                    initial={{ opacity: 0, scale: 0.8 }}
                     animate={{
-                      x: CARD_POS[winnerSeat.idx].x - POT.x,
-                      y: (CARD_POS[winnerSeat.idx].y < 200 ? CARD_POS[winnerSeat.idx].y + 64 : CARD_POS[winnerSeat.idx].y - 56) - POT.y,
                       opacity: [0, 1, 1, 0],
                       scale: [0.8, 1, 1, 0.9],
                       rotate: [0, -2.5, 2, 0],
@@ -946,19 +901,20 @@ export function TableView() {
                   <motion.div
                     key="winner"
                     className="absolute z-30 -translate-x-1/2 -translate-y-1/2"
-                    style={{ left: 170, top: 279 }}
+                    style={{ left: 160, top: 279 }}
                     initial={{ opacity: 0, y: 10, scale: 0.94 }}
                     animate={{ opacity: 1, y: 0, scale: 1 }}
                     exit={{ opacity: 0, y: -8 }}
                     transition={{ ...SPRING.panel, delay: runout ? 1.85 : showdown ? 0.45 : 0 }}
                   >
-                    <div className="flex flex-col items-center gap-1 rounded-xl border border-hairline-dark bg-paper/95 px-3.5 py-2 shadow-[0_10px_28px_rgb(23_21_14/0.16)]">
+                    <div className="flex w-[150px] flex-col items-center gap-1 rounded-xl border border-hairline-dark bg-paper/95 px-2 py-2 shadow-[0_10px_28px_rgb(23_21_14/0.16)]">
                       <Stamp rot={-4} tone="money" animate>
                         takes ${lastWinner.amount.toLocaleString("en-US")}
                       </Stamp>
-                      <div className="whitespace-nowrap rounded-full px-1 font-mono text-[9.5px] uppercase text-ink-soft">
+                      <div className="max-w-full truncate px-1 font-mono text-[9.5px] uppercase text-ink-soft">
                         {lastWinner.name}
-                        {lastWinner.text ? ` · ${lastWinner.text}` : ""}
+                      </div>
+                      <div className="text-center text-xs font-semibold text-money-deep">{lastWinner.text}
                       </div>
                     </div>
                   </motion.div>
