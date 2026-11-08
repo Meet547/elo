@@ -1,0 +1,29 @@
+# Architecture decisions
+
+## D001 — Isolated implementation and evidence
+
+Work is based on main commit 381e466 in an isolated branch. Reproductions, migrations, crash tests and load tests use task-owned databases. No production data/ratings/database writes or paid provisioning. Review files are retained with repository-relative source links.
+
+## D002 — Owner-approved prototype choices
+
+Free prototype, approximately 100 users, preserve existing history. Use Google OAuth, optional configured email magic link, Neon Postgres, local browser practice heuristics, verified ranked identities and placements, fixed ranked blinds, no rating season resets, approved standard inactivity RD growth, Postgres fan-out, selective reveal, owner-private unrated history and owner-only administration. Keep the temporary frontend origin and host-only cookie proxy. Admin identity is configured privately through ADMIN_EMAILS.
+
+## D003 — External access is a verification gate
+
+Google/Neon/email/Sentry accounts and staging require setup. A current production export has not been supplied. A local SQLite copy may be used for rehearsal but is not assumed current. Implement adapters and test isolated cases; do not fabricate credentials, silently discard data or claim staging validation happened.
+
+## D004 — Minimum age and legal surfaces
+
+The owner requests age 12+ worldwide and defers legal/parental-consent work. Retain that intended audience in planning, but gate underage personal-data registration and public legal text until the process/copy is approved. Do not publish a generic policy as a declaration of compliance. No real-money features.
+
+## D005 — Free hosting and deadlines
+
+Provide a durable database-backed worker, resumable events and deadline catch-up. Test continuously running local workers. A sleeping free web service cannot guarantee continuously executed deadlines; leave that deployment acceptance item deferred with the owner rather than hiding it with browser polling or claiming an always-on SLA.
+
+## D006 — Selective verification scope
+
+Publishing every seed that deterministically derives a deck reveals folded cards. With selective reveal, publish salted per-position membership proofs and test full seed derivation privately; the public verifier must state exactly which guarantees it verifies. Do not claim a public full-deck seed audit without disclosing the deck. This constraint is inherent in the selected privacy choice.
+
+## D007 — Preserve rules until their approved workstream
+
+The existing rating formula and default behavior stay unchanged until their regression tests and explicit workstream changes. Approved changes include check-when-legal timeouts, fixed ranked 10/20, ready checks and forfeit/void rules, real routes, removal of legacy house rating settlement, separate real ladder and persistent unranked results. Each receives its own tests and changelog entry.
