@@ -66,3 +66,10 @@
 - Add isolated fanout/recovery regression and local 500-spectator k6 fixture. Local p95 action-to-event 148.04 ms, 0% spectator failures; hosted capacity remains unverified.
 
 - Concurrent durable quota regression now covers raw Postgres serialization failures. Owning units retry complete aborted transactions; standalone atomic quota upserts use Read Committed, while injected game units retain their outer Serializable boundary. Rate-limit child fixtures close Prisma and have a bounded process timeout.
+
+## Fairness prerequisite
+
+- Fail shuffle creation when cryptographic randomness is unavailable; remove the weak Math.random fallback. The regression failed before the fix and passes afterward. Full client commit/Merkle integration is still pending.
+
+- Keep live full-shuffle seeds private after settlement so folded cards cannot be reconstructed. The panel states the commitment's limited scope. Add context-bound seed/Merkle utilities and 10,000 internal replay/tamper tests; live exchange/archive/page integration remains pending.
+- Correct the stress test's arbitrary tournament-length assertion: report a 200-hand sampling cap while preserving all per-hand correctness checks and the separate 100,000-hand deterministic suite.

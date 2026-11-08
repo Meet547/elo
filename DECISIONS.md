@@ -71,3 +71,19 @@ Ranked proposals deal no cards until both players confirm within 15 seconds. Dec
 ## D018 — atomic game-command acknowledgements
 
 A UUIDv4 key is bound to authenticated actor, scope and normalized intent. Game effects, quotas and the stored response commit together. Same-key/different-body requests conflict; known retries do not consume another quota. Action receipt retention is seven days and transient queue-poll retention is one minute. Browser pending keys are owner-scoped and survive unknown results/manual retry/same-tab reload; a fully received JSON response is required before acknowledging the intent. Identity-provider and session workflows retain their own security semantics.
+
+## D019 — transactional room fanout and bounded replay
+
+Room snapshots and notifications originate in the same Postgres transaction. Direct LISTEN connections feed shared room hubs, with personalized serialization before any frame leaves the server. Durable snapshots retain 24 hours and replay at most 128 contiguous events; gaps reset to current state. Streams rotate, authenticate again and use bounded buffers, preserving the latest state for slow viewers. Local 500-spectator acceptance is not a hosted capacity guarantee. Queue push remains WS9.
+
+## D020 — require secure shuffle entropy
+
+If platform cryptographic randomness is unavailable, creating a shuffle now fails explicitly. It no longer silently substitutes Math.random. This is an additional fairness defect found during WS8; the full client-commit/Merkle protocol remains a separate workstream.
+
+## D021 — folded-card privacy and honest proof scope
+
+Live serializers keep full shuffle seeds private after settlement, including historical event projection. Publicly revealing those seeds would expose folded cards. The live panel reports a commitment, not proof of fairness. Context-bound seed combination and salted Merkle membership utilities are prerequisites only until the exchange/archive/verification route is integrated. Private transcript replay and public disclosed-card membership are distinct capabilities; the latter cannot establish an unbiased full shuffle.
+
+## D022 — sample tournament length, assert hand termination
+
+A tournament can legitimately exceed 200 hands. The stress test keeps a bounded tournament sample and reports how many samples reached it, while preserving individual-hand termination, legality, burn/deal order, card uniqueness, chip conservation and stack checks. The independent deterministic 100,000-hand suite remains required. This changes test interpretation, not game/session rules.

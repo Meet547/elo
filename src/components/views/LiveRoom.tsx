@@ -20,7 +20,6 @@ import { ShuffleFX } from "@/components/felt/shuffle";
 import { useFelt } from "@/store/game";
 import { serverClockOffset, secondsToDeadline } from "@/lib/poker/server-clock";
 import { HUMAN_TURN_MS } from "@/lib/poker/turn-timing";
-import { verifyDeck } from "@/lib/poker/cards";
 import { boardCardDelay, holeCardDelay, isRunout } from "@/lib/poker/deal-timing";
 import { LIVE_CAPACITY, type LiveCommand, type LiveSnapshot } from "@/lib/poker/live-table";
 import { cn } from "@/lib/utils";
@@ -543,14 +542,12 @@ function LiveFelt({ room, compact, busy, send, connected, error, clockOffset }: 
 }
 
 function LiveDetails({ game }: { game: NonNullable<LiveSnapshot["game"]> }) {
-  const proof = game.deckSeed ? verifyDeck(game.deckSeed, game.deckCommit) : null;
   return (
     <>
       <details className="elo-panel p-4">
-        <summary className="cursor-pointer text-sm font-semibold">Fair deal</summary>
+        <summary className="cursor-pointer text-sm font-semibold">Deal commitment</summary>
         <p className="mt-2 break-all font-mono text-[10px] text-ink-soft">{game.deckCommit}</p>
-        <p className="mt-2 text-xs text-ink-soft">{proof ? proof.valid ? "Verified. The seed reproduces this shuffle." : "Shuffle verification failed." : "The seed is revealed after the hand."}</p>
-        {game.deckSeed && <p className="mt-2 break-all font-mono text-[10px] text-ink-soft">{game.deckSeed}</p>}
+        <p className="mt-2 text-xs text-ink-soft">Hidden cards stay private. This commitment alone does not prove a fair shuffle.</p>
       </details>
       <section className="elo-panel p-4">
         <h2 className="font-display text-2xl">Hand log</h2>

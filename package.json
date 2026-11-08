@@ -42,7 +42,11 @@
     "test:command-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-command-crash.ts",
     "test:ranked-command-pipeline": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-command-pipeline.ts",
     "test:realtime": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-realtime-fanout.ts",
-    "test:spectator-load": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-spectator-load.ts"
+    "test:spectator-load": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-spectator-load.ts",
+    "test:secure-random": "bun scripts/test-secure-random.ts",
+    "test:fair-deck": "bun scripts/test-fair-deck.ts",
+    "test:folded-privacy": "bun scripts/test-folded-privacy.ts",
+    "test:fair-round": "bun scripts/test-fair-round.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

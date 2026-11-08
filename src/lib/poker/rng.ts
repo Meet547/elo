@@ -14,9 +14,7 @@
 //     revealed seed must reproduce the commit — that is the whole proof, and
 //     it is checkable by anyone with this file and the seed.
 //
-// Nothing here depends on Math.random. The only non-crypto fallback exists
-// for environments without Web Crypto (there are none we support in practice,
-// but a shuffle must never throw).
+// Shuffle creation fails closed if the platform CSPRNG is unavailable.
 // ---------------------------------------------------------------------------
 
 // --------------------------------------------------------------- ChaCha20 ---
@@ -212,8 +210,7 @@ export function randomSeedHex(): string {
   if (c && typeof c.getRandomValues === "function") {
     c.getRandomValues(bytes);
   } else {
-    // last resort: MixMath. Never reached in a browser or Node 19+.
-    for (let i = 0; i < bytes.length; i++) bytes[i] = Math.floor(Math.random() * 256);
+    throw new Error("Secure randomness is required to shuffle cards.");
   }
   return toHex(bytes);
 }

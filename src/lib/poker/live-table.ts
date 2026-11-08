@@ -269,7 +269,7 @@ export function liveStandings(table: LiveTable) {
   }));
 }
 
-/** The only data that can leave the server. No deck, live seed or hidden hole cards. */
+/** The only data that can leave the server. No deck, full shuffle seed or hidden hole cards. */
 export function publicLiveTable(table: LiveTable, playerId: string, code: string, revision: number) {
   const me = table.players.findIndex((p) => p.id === playerId);
   const g = table.game;
@@ -292,8 +292,8 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
     game: g ? {
       handNo: g.handNo, phase: g.phase, street: g.street, button: g.button,
       toAct: g.toAct, sb: g.sb, bb: g.bb, pot: g.collected + g.seats.reduce((sum, s) => sum + s.bet, 0),
-      board: g.board, deckCommit: g.deckCommit, deckSeed: revealed ? g.deckSeed : null,
-      log: g.log.slice(-24), awards: g.awards?.map((a) => ({ seatIdx: a.seatIdx, amount: a.amount, hand: shortHandLabel(a.hand) })) ?? [],
+      board: g.board, deckCommit: g.deckCommit, deckSeed: null as string | null,
+      log: g.log.slice(-24).map(entry => entry.text.startsWith("deck opened · seed ") ? {...entry,text:"hand settled · hidden cards remain private"} : entry), awards: g.awards?.map((a) => ({ seatIdx: a.seatIdx, amount: a.amount, hand: shortHandLabel(a.hand) })) ?? [],
       legal: g.phase === "betting" && g.toAct === me ? legalActions(g, me) : null,
     } : null,
     standings: liveStandings(table).map(({ idx, name, place, stack, net }) => ({ idx, name, place, stack, net })),
