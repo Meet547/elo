@@ -27,12 +27,13 @@ export async function processDeadlineBatch(now=Date.now()){
   if(!changed.count)throw new Error("Expired room revision changed; retry next cycle.");
   await tx.rankedSeat.deleteMany({where:{roomCode:row.code}});
  },{isolationLevel:'Serializable'});
- const [queue,limits,sessions,oauth,receipts]=await db.$transaction([
+ const [queue,limits,sessions,oauth,receipts,events]=await db.$transaction([
   db.rankedSeat.deleteMany({where:{roomCode:null,seenAt:{lt:new Date(now-RANKED_PRESENCE_MS)}}}),
   db.rateWindow.deleteMany({where:{resetAt:{lte:date}}}),
   db.authSession.deleteMany({where:{expiresAt:{lte:date}}}),
   db.oAuthAttempt.deleteMany({where:{expiresAt:{lte:date}}}),
   db.commandReceipt.deleteMany({where:{expiresAt:{lte:date}}}),
+  db.roomEvent.deleteMany({where:{createdAt:{lt:new Date(now-86400_000)}}}),
  ]);
- return {processed,expired:expired.length,queueReleased:queue.count,limitsRemoved:limits.count,sessionsRemoved:sessions.count,oauthRemoved:oauth.count,receiptsRemoved:receipts.count,batchLimited:due.length===50};
+ return {processed,expired:expired.length,queueReleased:queue.count,limitsRemoved:limits.count,sessionsRemoved:sessions.count,oauthRemoved:oauth.count,receiptsRemoved:receipts.count,eventsRemoved:events.count,batchLimited:due.length===50};
 }

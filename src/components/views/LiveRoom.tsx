@@ -162,6 +162,9 @@ function LiveRoom({ code }: { code: string }) {
   useEffect(() => {
     const controller = new AbortController();
     let stream: EventSource | undefined;
+    let reconnect: ReturnType<typeof setTimeout> | undefined;
+    let delay = 750;
+    let cursor = "";
     const url = `/api/live/${encodeURIComponent(code)}`;
     const accept = (value: LiveSnapshot) => setRoom((current) => !current || value.revision >= current.revision ? value : current);
     void (async () => {
@@ -175,23 +178,38 @@ function LiveRoom({ code }: { code: string }) {
         if (Number.isFinite(data.room.serverNow)) setClockOffset(serverClockOffset(data.room.serverNow, sentAt, Date.now()));
         accept(data.room);
         if (data.room.status === "closed" || data.room.status === "finished") return;
-        stream = new EventSource(`${url}/events`);
-        stream.onmessage = (event) => {
-          const value: LiveSnapshot = JSON.parse(event.data);
-          accept(value);
-          setConnected(true);
-          if (value.status === "closed" || value.status === "finished") stream?.close();
+        const connect = () => {
+          if (controller.signal.aborted) return;
+          const source = new EventSource(`${url}/events${cursor ? `?after=${encodeURIComponent(cursor)}` : ""}`);
+          stream = source;
+          source.onopen = () => { delay = 750; setConnected(true); };
+          source.onmessage = (event) => {
+            try {
+              const value: LiveSnapshot = JSON.parse(event.data);
+              if (event.lastEventId) cursor = event.lastEventId;
+              accept(value);
+              setConnected(true);
+              if (value.status === "closed" || value.status === "finished") source.close();
+            } catch { source.onerror?.(new Event("error")); }
+          };
+          source.onerror = () => {
+            source.close();
+            if (controller.signal.aborted) return;
+            setConnected(false);
+            reconnect = setTimeout(connect, delay);
+            delay = Math.min(delay * 2, 15_000);
+          };
+          source.addEventListener("expired", () => {
+            source.close();
+            setFailure("This room has expired.");
+          });
         };
-        stream.onerror = () => setConnected(false);
-        stream.addEventListener("expired", () => {
-          stream?.close();
-          setFailure("This room has expired.");
-        });
+        connect();
       } catch (cause) {
         if (!controller.signal.aborted) setFailure(cause instanceof Error ? cause.message : "Could not open the room.");
       }
     })();
-    return () => { controller.abort(); stream?.close(); };
+    return () => { controller.abort(); clearTimeout(reconnect); stream?.close(); };
   }, [attempt, code]);
 
   async function send(command: LiveCommand) {

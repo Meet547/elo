@@ -58,3 +58,11 @@
 - Started an authenticated loopback deadline worker with backend startup and bounded TTL cleanup on the free web service.
 - Added atomic game-command receipts, actor/payload key binding, quota-safe replay and persistent browser pending intent keys.
 - Added measured server-clock countdowns, forfeit/void presentation and process-kill/drop/truncation/replay regressions.
+
+## WS7 — room realtime
+
+- Replace per-viewer database polling with shared Postgres LISTEN/NOTIFY room hubs and transaction-backed revision replay.
+- Preserve actor-specific card privacy during current delivery and replay; close streams on session revocation, recover listeners, bound slow-reader buffering and retry browser streams with their last cursor.
+- Add isolated fanout/recovery regression and local 500-spectator k6 fixture. Local p95 action-to-event 148.04 ms, 0% spectator failures; hosted capacity remains unverified.
+
+- Concurrent durable quota regression now covers raw Postgres serialization failures. Owning units retry complete aborted transactions; standalone atomic quota upserts use Read Committed, while injected game units retain their outer Serializable boundary. Rate-limit child fixtures close Prisma and have a bounded process timeout.

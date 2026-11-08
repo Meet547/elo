@@ -68,6 +68,7 @@ model Session {
 
 model LiveRoom {
   code      String   @id
+  events RoomEvent[]
   nextDeadlineAt DateTime?
   revision  Int      @default(0)
   matchId   String?  @unique
@@ -211,4 +212,14 @@ model CommandReceipt {
   expiresAt DateTime
   @@id([actorId,scope,key])
   @@index([expiresAt])
+}
+
+model RoomEvent {
+  roomCode String
+  room LiveRoom @relation(fields:[roomCode],references:[code],onDelete:Cascade)
+  revision Int
+  state Json
+  createdAt DateTime @default(now())
+  @@id([roomCode,revision])
+  @@index([createdAt])
 }

@@ -6,7 +6,7 @@ This branch is not deployed. Read docs/status.json and workstream notes before a
 
 The root render.yaml now requests the free Node web service, with no paid disk or Render-managed database. It selects main for eventual release but disables automatic deployment while migration is pending. Do not sync it over the existing production service or merge storage changes into an automatically deploying branch before cutover preparation.
 
-Provision a private prototype Neon Postgres project manually. Configure runtime DATABASE_URL and non-pooled DIRECT_DATABASE_URL in Render. Both must be Postgres URLs, use TLS for hosted connections, and remain backend secrets. Keep one backend instance while durable rate limits, realtime fanout and lifecycle work remain pending. A sleeping free web service cannot guarantee an always-on worker or continuous availability.
+Provision a private prototype Neon Postgres project manually. Configure runtime DATABASE_URL and non-pooled DIRECT_DATABASE_URL in Render. Both must be Postgres URLs, use TLS for hosted connections, and remain backend secrets. Keep one backend instance for this prototype until multi-instance staging acceptance is complete. Room delivery now shares a direct Postgres listener with bounded per-room fanout; runtime mutation limits and match lifecycle persist in Postgres. A sleeping free web service cannot guarantee an always-on worker or continuous availability.
 
 Render commands, from repository root:
 
@@ -43,8 +43,10 @@ A staging rollout needs a current approved export, empty target, preserved secre
 
 Verify returning profiles across sleeping-host errors and backend restart; two-browser room actions and private-card boundaries; exactly-once ranked settlement and replay rejection; Google linking preserving the old player ID; cross-device restoration; individual logout and logout-all; migration readiness and backup restore. Do not treat the successful isolated fixtures as a live Google/Neon/Render acceptance run.
 
-Google/Neon/email/Sentry accounts and staging are not yet configured. Optional email magic links, underage registration/consent launch surfaces, durable realtime and other remaining workstreams must be finished or explicitly deferred before a broader release.
+Google/Neon/email/Sentry accounts and staging are not yet configured. Optional email magic links, underage registration/consent launch surfaces and other remaining workstreams must be finished or explicitly deferred before a broader release.
 
 References: [Render Blueprint fields](https://render.com/docs/blueprint-spec), [Render health checks](https://render.com/docs/health-checks), [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
 
 Backend startup now includes a deadline worker child process. Do not create a paid worker for the prototype. The internal endpoint is loopback-authenticated and is not available through the browser bridge. Free-service sleep still interrupts processing until wake. Game API clients and backend must be rolled out together because game mutation POSTs require Idempotency-Key. See workstreams/WS6.md.
+
+Room event replay retains 24 hours of private authoritative snapshots; clients receive only actor-specific public projections. The worker sweeps old events. See [WS7](workstreams/WS7.md) for local fanout evidence and hosted-capacity limits.

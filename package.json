@@ -40,7 +40,9 @@
     "test:deadline-worker": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-deadline-worker.ts",
     "test:command-idempotency": "bun scripts/test-game-command.ts && node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-command-idempotency.ts",
     "test:command-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-command-crash.ts",
-    "test:ranked-command-pipeline": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-command-pipeline.ts"
+    "test:ranked-command-pipeline": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-command-pipeline.ts",
+    "test:realtime": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-realtime-fanout.ts",
+    "test:spectator-load": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-spectator-load.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
