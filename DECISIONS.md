@@ -31,3 +31,11 @@ The existing rating formula and default behavior stay unchanged until their regr
 ## D008 — Local Postgres prerequisite before ranked constraints
 
 The approved durable database target is Postgres. Move the active Prisma schema to Postgres before WS1 constraints instead of designing and discarding a second SQLite settlement migration. Preserve the original SQLite schema/history as a conversion reference. Integration tooling refuses remote hosts and non-test database names, and its default disposable container is loopback-only. This commit is not a production migration or permission to connect to production.
+
+## D009 — Database-enforced ranked settlement
+
+Each new ranked game has a Match identity with conditional state transitions, frozen pre-match rating snapshots, a unique MatchSettlement and unique match/player history. Settlement writes and queue release are atomic with the terminal room revision. Every player command against a finished/closed room rejects without writes. The old client-described house rating path and its switch are removed; browser practice produces an unrated receipt. WS6 will replace compatibility automatic readiness transitions with player-confirmed readiness.
+
+## D010 — Crash verification without application test hooks
+
+The crash fixture holds a task-owned Postgres advisory lock through a test-only database trigger at history insertion, kills the actual child process during the transaction, then checks another connection sees no partial result. The trigger/lock are removed only in the isolated test database. Production code has no crash switches or deliberate delays.

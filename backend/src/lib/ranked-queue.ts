@@ -3,6 +3,7 @@ import "server-only";
 import { Prisma } from "@prisma/client";
 import { db } from "./db";
 import { roomRecord } from "./live-rooms";
+import { createActiveRankedMatch } from "./match-state";
 import { newRankedTable } from "@/lib/poker/live-table";
 import { chooseRankedOpponent, rankedRange, RANKED_MAX_RANGE, RANKED_PRESENCE_MS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
 
@@ -15,12 +16,11 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         const now = new Date();
         const cutoff = new Date(now.getTime() - RANKED_PRESENCE_MS);
 
-        // Acquire SQLite's write lock before reading candidates. Cancellation,
-        // room creation and both seat assignments then share the same transaction.
+        // Serializable isolation protects candidate selection and both assignments.
         await tx.rankedSeat.deleteMany({ where: { roomCode: null, seenAt: { lt: cutoff } } });
         const player = await tx.player.findUnique({
           where: { id: playerId, isRival: false },
-          select: { id: true, name: true, rating: true },
+          select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
         });
         if (!player) return null;
 
@@ -54,10 +54,13 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
         if (candidate) {
           const opponent = await tx.player.findUnique({
             where: { id: candidate.playerId, isRival: false },
-            select: { id: true, name: true, rating: true },
+            select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
           });
           if (opponent && chooseRankedOpponent(waiting, [{ ...candidate, rating: opponent.rating }], now.getTime())) {
-            const room = await tx.liveRoom.create({ data: roomRecord(newRankedTable(player, opponent, now.getTime())) });
+            const matchId = await createActiveRankedMatch(tx, [player, opponent], now);
+            const table = newRankedTable(player, opponent, now.getTime());
+            table.ranked!.matchId = matchId;
+            const room = await tx.liveRoom.create({ data: roomRecord(table, matchId) });
             await tx.rankedSeat.update({ where: { playerId }, data: { roomCode: room.code } });
             await tx.rankedSeat.update({ where: { playerId: opponent.id }, data: { roomCode: room.code, rating: opponent.rating } });
             return { status: "matched", code: room.code, rating: player.rating };
@@ -67,7 +70,7 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand)
           status: "searching", rating: player.rating, joinedAt: waiting.joinedAt.getTime(),
           range: rankedRange(waiting.joinedAt.getTime(), now.getTime()),
         };
-      });
+      }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable });
     } catch (error) {
       if (attempt >= 2 || !(error instanceof Prisma.PrismaClientKnownRequestError) ||
         !["P1008", "P2002", "P2028", "P2034"].includes(error.code)) throw error;

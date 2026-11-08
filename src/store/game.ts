@@ -868,18 +868,6 @@ async function settleSession() {
     return b.stack - a.stack;
   });
   const place = order.findIndex((x) => x.isHuman) + 1;
-  const oppIds = st.opponents.map((o) => o.id);
-  const oppPlaces = oppIds.map((id) => order.findIndex((x) => x.id === id) + 1);
-
-  // the "why" line: how the stack actually reached zero
-  const hb = useFelt.getState().humanBust;
-  const exit =
-    human.stack <= 0 && hb
-      ? hb.by
-        ? `out in hand ${hb.hand} — the $${(hb.pot ?? 0).toLocaleString("en-US")} pot went to ${hb.by}`
-        : `out in hand ${hb.hand} — blinded down to nothing`
-      : null;
-
   const base = {
     tableNo: st.tableNo,
     seat: human.idx + 1,
@@ -892,59 +880,6 @@ async function settleSession() {
     potsWon: useFelt.getState().sessionPotsWon,
     settledAt: new Date(),
   };
-
-  try {
-    const res = await fetch("/api/settle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        hands: base.hands,
-        finalStack: base.finalStack,
-        place,
-        seats: base.seats,
-        biggestPot: base.biggestPot,
-        bestHand: base.bestHand ?? null,
-        exit,
-        potsWon: base.potsWon,
-        opponentIds: oppIds,
-        places: oppPlaces,
-        stacks: oppIds.map((id) => s.seats.find((x) => x.id === id)?.stack ?? 0),
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      useFelt.setState({
-        settleResult: {
-          ...base,
-          ratingBefore: data.ratingBefore,
-          ratingAfter: data.ratingAfter,
-          delta: data.delta,
-          rankBefore: data.rankBefore,
-          rankAfter: data.rankAfter,
-          rdAfter: data.rd,
-          expected: data.expected,
-          fieldAvg: data.fieldAvg,
-          provisional: data.provisional,
-        },
-        profile: {
-          ...me,
-          rating: data.ratingAfter,
-          peak: data.peak,
-          rd: data.rd ?? me.rd,
-          rated: data.rated ?? (me.rated ?? 0) + 1,
-        },
-        view: "settle",
-        settling: false,
-        humanBust: null,
-        wantsLeave: false,
-        cashOutQueued: false,
-      });
-      playStamp();
-      return;
-    }
-  } catch {
-    // offline fallback below
-  }
 
   useFelt.setState({
     settleResult: {

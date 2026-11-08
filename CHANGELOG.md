@@ -8,3 +8,6 @@
 - No application behavior or production deployment changed in the discovery commit.
 
 - WS4 prerequisite: active Prisma schema/startup now target Postgres; SQLite history retained as an import/rollback reference. Local integration/smoke tests use isolated Postgres and refuse remote/production targets. Existing live deployments are unchanged.
+
+- WS1: removed client-described house rating mutations and their switch. Practice receipts retain unchanged ratings. Finished-room commands now reject without mutation. New ranked matches have conditional lifecycle states, a unique settlement, unique match/player history and atomic rating/history/settlement writes.
+- Ready confirmation UI remains WS6 work; automatic match startup is retained until that workstream. Existing legacy room/history import mapping remains part of the approved migration rehearsal.

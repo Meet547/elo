@@ -54,7 +54,7 @@ Do not publicly expose that secret in monitoring screenshots or logs.
 3. Create a six-character private room. Open the invite in another browser profile,
    claim a second player, join, start, and confirm both see the same moves.
 4. Queue two profiles for ranked play. Confirm exactly ten hands, score updates,
-   and one saved result each. Never enable `ELO_ENABLE_PRACTICE_RATINGS` in production.
+   and one saved result each. House games cannot submit ranked results.
 5. Play a practice hand with Render's Ollama key configured. Disconnect Cloud and
    confirm play continues through the heuristic fallback.
 6. Redeploy Render and confirm profiles/history persist and sessions remain signed in.

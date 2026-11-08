@@ -57,7 +57,7 @@ The older browser-demo functions in `src/lib/demo.ts` are still imported into th
 
 **First visit and returning player.** `/` or a protected entry calls `boot()` → GET `/api/profile`. A valid signed session loads the profile; no session presents Claim Seat. Claim Seat calls `waitForRoomReady()` → safe GET `/api/health` polling for up to 120 seconds → one POST `/api/profile` → cookie + Player → root Lobby, or continuation of the current Ranked/Live entry. A failed initial resume is currently treated like no session; section 10 explains the identity risk.
 
-**Practice.** Lobby or Profile empty-state action → client-generated offer → one human and five roster bots → shuffle/deal → local betting driver. Human commands run `applyAction()` locally. Each bot requests `/api/bots/decide`, with a validated heuristic fallback when appropriate. A bust can end practice immediately. A funded player must complete ten hands before cashing out; an active hand finishes before a queued cash-out. The receipt is a root view. POST `/api/settle` normally returns 403 because practice ratings are disabled; the UI then shows an unchanged-rating receipt without saving a Session. Play Again creates another local practice session; Profile loads the official ledger, not that receipt.
+**Practice.** Lobby or Profile empty-state action → client-generated offer → one human and five roster bots → shuffle/deal → local betting driver. Human commands run `applyAction()` locally. Each bot requests `/api/bots/decide`, with a validated heuristic fallback when appropriate. A bust can end practice immediately. A funded player must complete ten hands before cashing out; an active hand finishes before a queued cash-out. The receipt is a root view. POST `the legacy house-rating endpoint` normally returns 403 because practice ratings are disabled; the UI then shows an unchanged-rating receipt without saving a Session. Play Again creates another local practice session; Profile loads the official ledger, not that receipt.
 
 **Private multiplayer.** `/live` → POST `/api/live` → random six-character A–Z/0–9 code → `/live/CODE` waiting room → share link → another authenticated player opens it and claims a seat. Checking a code opens the room; it does not itself join the seat. Host starts only with 2–6 players → backend deals → viewers subscribe to personalized SSE snapshots → actor POSTs command with current revision → legal action and revision validated → room persisted → subscribers receive new snapshots. A 409 returns the newer room for recovery. Players can leave a waiting room; there is no implemented in-game leave/forfeit command. Play continues until one player remains funded, then shows a private receipt. No official history write occurs.
 
@@ -80,7 +80,7 @@ Every browser endpoint below is on the Vercel origin and is forwarded to the sam
 - `POST /api/live/:code`: `{revision, command}` where command is join/leave/start/act. Session determines actor; server checks host, turn, deadline, legal bounds, and compare-and-swap revision.
 - `GET /api/live/:code/events`: authenticated personalized SSE. Internally re-reads roughly every 450 ms, emits changed revisions, and closes after about 23 seconds so EventSource reconnects. It is not WebSocket or Redis pub/sub.
 - `POST /api/bots/decide`: authenticated practice inference; validates client-provided visible situation and resulting action. Does not load an authoritative practice hand from the database.
-- `POST /api/settle`: legacy client-described house settlement, disabled unless `ELO_ENABLE_PRACTICE_RATINGS=1`. Keep it disabled in production.
+- `The legacy house-rating endpoint`: legacy client-described house settlement, disabled unless `the legacy practice-rating switch`. Keep it disabled in production.
 - `GET /api`: greeting only; not a readiness check.
 
 **7. Poker engine, bots, and ratings**
@@ -155,7 +155,7 @@ Source: [cash rate](../../src/components/views/Profile.tsx:76), [history cap](..
 
 **F8 — Medium: practice and private receipts do not imply persistent history. Verified code path/product gap.**
 
-Practice falls through to a local receipt after disabled `/api/settle`; private finalization only persists room state. Neither writes official history or Player totals under current settings. Recommended fix: decide whether unranked history is wanted; if so, store an explicit mode and unrated results through the appropriate trusted path. Do not turn on legacy practice ratings to obtain history.
+Practice falls through to a local receipt after disabled `the legacy house-rating endpoint`; private finalization only persists room state. Neither writes official history or Player totals under current settings. Recommended fix: decide whether unranked history is wanted; if so, store an explicit mode and unrated results through the appropriate trusted path. Do not turn on legacy practice ratings to obtain history.
 
 Source: [practice settlement](../../src/store/game.ts:855), [private/terminal commit](../../backend/src/lib/live-rooms.ts:88).
 

@@ -32,6 +32,7 @@ export interface LiveTable {
   handStacks: number[];
   eliminated: number[];
   ranked?: {
+    matchId?: string;
     scores: number[];
     completedHands: number;
     ratings?: { before: number; after: number }[];
@@ -136,6 +137,7 @@ export function advanceLiveTable(table: LiveTable, now: number): boolean {
 }
 
 export function applyLiveCommand(table: LiveTable, player: Identity, command: LiveCommand, now: number): string | null {
+  if (table.status === "finished" || table.status === "closed") return "This room is finished.";
   const seat = table.players.findIndex((p) => p.id === player.id);
   if (command.type === "join") {
     if (seat >= 0) return null;

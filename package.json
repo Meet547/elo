@@ -17,7 +17,9 @@
     "typecheck": "tsc --noEmit",
     "db:deploy": "prisma migrate deploy",
     "test:integration": "node scripts/with-test-postgres.mjs bun scripts/test-postgres.ts",
-    "smoke:production": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs"
+    "smoke:production": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs",
+    "test:ranked-integrity": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-replay.ts",
+    "test:settlement-crash": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-settlement-crash.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -66,6 +68,7 @@
     "react-hook-form": "^7.91.0",
     "react-resizable-panels": "^3.0.6",
     "recharts": "^2.15.4",
+    "server-only": "^0.0.1",
     "sharp": "^0.35.5",
     "sonner": "^2.0.8",
     "tailwind-merge": "^3.7.0",
