@@ -4,6 +4,7 @@
 // Lobby — the ladder, tonight's table ticket, and the wire.
 // ---------------------------------------------------------------------------
 
+import { useRouter } from "next/navigation";
 import { useFelt } from "@/store/game";
 import { FadeList, LiveDot, Stamp, TactileButton } from "@/components/felt/kit";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
@@ -32,6 +33,8 @@ function Ord(n: number) {
 
 export function Lobby() {
   const { profile, ladder, wire, ladderLoading, refreshLadder, seatTable, offer } = useFelt();
+  const router = useRouter();
+  const startPractice = () => { seatTable(); router.push("/table"); };
   const [search, setSearch] = useState("");
   const query = search.trim().toLowerCase();
   const players = query ? ladder.filter((player) => player.name.toLowerCase().includes(query)) : ladder;
@@ -63,7 +66,7 @@ export function Lobby() {
           <Link href="/live" className="inline-flex min-h-11 items-center rounded-xl border border-[#eee5c4]/45 px-3 text-sm text-[#fdf8e8] hover:bg-white/10">
             Play with friends
           </Link>
-          <TactileButton variant="ghost" size="sm" className="h-11 border-[#eee5c4]/45 px-3 text-[#fdf8e8] hover:bg-white/10 md:hidden" onClick={seatTable}>
+          <TactileButton variant="ghost" size="sm" className="h-11 border-[#eee5c4]/45 px-3 text-[#fdf8e8] hover:bg-white/10 md:hidden" onClick={startPractice}>
             Practice
           </TactileButton>
         </div>
@@ -220,7 +223,7 @@ export function Lobby() {
                 <span className="font-mono text-[10px] uppercase text-ink-faint">Buy-in, every game</span>
                 <span className="tnum font-mono text-[15px] font-semibold">$1,500</span>
               </div>
-              <TactileButton variant="accent" size="lg" className="mt-4 w-full" onClick={seatTable}>
+              <TactileButton variant="accent" size="lg" className="mt-4 w-full" onClick={startPractice}>
                 Take a seat
               </TactileButton>
               <p className="mt-2 text-center font-mono text-[9px] uppercase text-ink-faint">

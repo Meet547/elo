@@ -6,7 +6,7 @@
 // stays stable for animation. All money numbers are integers.
 // ---------------------------------------------------------------------------
 
-import { Card, secureDeck } from "./cards";
+import { Card, secureDeck, deckFromSeed, commitOf } from "./cards";
 import { evaluate, HandValue } from "./evaluator";
 
 export type Street = "preflop" | "flop" | "turn" | "river";
@@ -31,6 +31,7 @@ export interface Seat {
   allIn: boolean;
   out: boolean; // busted for the session
   cards: Card[];
+  actedAtBet?: number; // street bet level at the last action, never total hand contribution
   hasActed: boolean; // acted since last full raise this street
   lastAction: string; // display, e.g. "call 120"
   persona?: Persona;
@@ -74,6 +75,7 @@ export interface GameState {
   logSeq: number;
   awards: Award[] | null;
   handStartStack: number; // human stack at hand start (for net display)
+  fixedBlinds?: [number, number];
   levelMarker: boolean; // blinds went up this hand
 }
 
@@ -130,8 +132,10 @@ function log(s: GameState, kind: LogEntry["kind"], text: string) {
 
 export function newSession(
   players: { id: string; name: string; isHuman: boolean; rating: number; persona?: Persona }[],
+  options: { fixedBlinds?: [number, number] } = {},
 ): GameState {
   const s: GameState = {
+    fixedBlinds: options.fixedBlinds,
     handNo: 0,
     level: 0,
     sb: BLIND_LEVELS[0][0],
@@ -178,7 +182,7 @@ export function humanSeat(s: GameState): Seat {
   return s.seats.find((x) => x.isHuman)!;
 }
 
-export function startHand(s: GameState): void {
+export function startHand(s: GameState, replaySeed?: string): void {
   s.handNo += 1;
   s.awards = null;
   s.board = [];
@@ -197,11 +201,11 @@ export function startHand(s: GameState): void {
   }
 
   // blinds level
-  if (s.handNo > 1 && (s.handNo - 1) % HANDS_PER_LEVEL === 0 && s.level < BLIND_LEVELS.length - 1) {
+  if (!s.fixedBlinds && s.handNo > 1 && (s.handNo - 1) % HANDS_PER_LEVEL === 0 && s.level < BLIND_LEVELS.length - 1) {
     s.level += 1;
     s.levelMarker = true;
   }
-  [s.sb, s.bb] = BLIND_LEVELS[s.level];
+  [s.sb, s.bb] = s.fixedBlinds ?? BLIND_LEVELS[s.level];
 
   // rotate button among alive seats (after busts)
   if (s.handNo > 1) s.button = nextAlive(s, s.button);
@@ -213,6 +217,7 @@ export function startHand(s: GameState): void {
     seat.allIn = false;
     seat.cards = [];
     seat.hasActed = false;
+    seat.actedAtBet = 0;
     seat.lastAction = seat.out ? "out" : "";
     seat.revealed = undefined;
   }
@@ -225,7 +230,8 @@ export function startHand(s: GameState): void {
   // the commit is public, the seed stays hidden until the hand is settled.
   // Cards are then delivered round the table starting left of the button, and
   // a burn card goes down before every street, exactly like a live game.
-  const sealed = secureDeck();
+  const replayDeck = replaySeed ? deckFromSeed(replaySeed) : null;
+  const sealed = replayDeck && replaySeed ? { deck: replayDeck, seed: replaySeed, commit: commitOf(replaySeed, replayDeck) } : secureDeck();
   s.deck = sealed.deck;
   s.deckSeed = sealed.seed;
   s.deckCommit = sealed.commit;
@@ -259,7 +265,7 @@ export function startHand(s: GameState): void {
   }
 
   // everyone all-in from blinds → run it out immediately
-  if (countCanAct(s) <= 0 || (s.toAct >= 0 && !needsAction(s, s.seats[s.toAct]))) {
+  if (roundComplete(s) || countCanAct(s) <= 0 || (s.toAct >= 0 && !needsAction(s, s.seats[s.toAct]))) {
     s.toAct = -1;
     advanceStreet(s);
   }
@@ -296,7 +302,7 @@ export function roundComplete(s: GameState): boolean {
   const inHand = s.seats.filter((x) => !x.out && !x.folded);
   const canAct = inHand.filter((x) => !x.allIn);
   if (canAct.length === 0) return true; // everyone all-in → run it out
-  if (canAct.length === 1 && canAct[0].bet >= s.currentBet && canAct[0].hasActed) return true;
+  if (canAct.length === 1 && canAct[0].bet >= s.currentBet) return true;
   return !s.seats.some((x) => needsAction(s, x));
 }
 
@@ -315,9 +321,8 @@ export function legalActions(s: GameState, idx: number): LegalActions {
   const seat = s.seats[idx];
   const toCall = Math.min(s.currentBet - seat.bet, seat.stack);
   const callAmount = toCall;
-  const isRaiseLocked =
-    seat.hasActed && s.currentBet > 0 &&
-    s.seats.some((x) => x.allIn && x.totalBet > s.currentBet - s.minRaise && x.totalBet <= s.currentBet);
+  const isRaiseLocked = seat.hasActed &&
+    s.currentBet - (seat.actedAtBet ?? seat.bet) < s.minRaise;
   const canCheck = seat.bet >= s.currentBet;
   const maxRaiseTo = seat.stack + seat.bet;
   const minRaiseTo = Math.min(Math.max(s.currentBet + s.minRaise, s.bb), maxRaiseTo);
@@ -390,6 +395,7 @@ export function applyAction(s: GameState, idx: number, action: BotAction): void 
   }
 
   seat.hasActed = true;
+  seat.actedAtBet = s.currentBet;
 
   // single player left → award immediately (fold win)
   if (activeSeats(s).length === 1) {
@@ -423,6 +429,7 @@ export function advanceStreet(s: GameState): void {
     s.collected += seat.bet;
     seat.bet = 0;
     seat.hasActed = false;
+    seat.actedAtBet = 0;
   }
   s.currentBet = 0;
   s.minRaise = s.bb;
@@ -480,6 +487,18 @@ function runShowdown(s: GameState): void {
   }
   for (const seat of inHand) {
     seat.revealed = evaluate([...seat.cards, ...s.board]);
+  }
+
+  // An unmatched top contribution is returned, never recorded as a won pot.
+  const committed = s.seats.filter(seat => seat.totalBet > 0).sort((a, b) => b.totalBet - a.totalBet);
+  if (committed.length) {
+    const refund = committed[0].totalBet - (committed[1]?.totalBet ?? 0);
+    if (refund > 0) {
+      committed[0].stack += refund;
+      committed[0].totalBet -= refund;
+      s.collected = Math.max(0, s.collected - refund);
+      log(s, "info", `${committed[0].name} receives ${refund} uncalled chips back`);
+    }
   }
 
   // side pots: cap levels at all-in amounts

@@ -1,12 +1,29 @@
 name: Verify deployment
-on: [push, pull_request]
+on:
+  push:
+    branches: [main]
+  pull_request:
 permissions:
   contents: read
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 30
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: elo_test
+          POSTGRES_PASSWORD: integration-only-not-a-production-secret
+          POSTGRES_DB: elo_test
+        ports: ['5432:5432']
+        options: >-
+          --health-cmd "pg_isready -U elo_test"
+          --health-interval 5s --health-timeout 5s --health-retries 10
     env:
-      DATABASE_URL: file:./db/ci.db
+      DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
+      DIRECT_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
+      TEST_DATABASE_URL: postgresql://elo_test:integration-only-not-a-production-secret@127.0.0.1:5432/elo_test
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -16,8 +33,49 @@ jobs:
         with:
           bun-version: '1.3.14'
       - run: npm ci --include=dev
+      - run: npm run typecheck
       - run: npm run lint
+      - run: npm run test:folded-privacy
+      - run: npm run test:client-seed
+      - run: npm run test:live-fairness
+      - run: npm run test:fair-archive
+      - run: npm run test:fair-round
+      - run: npm run test:fair-deck
+      - run: npm run test:secure-random
+      - run: npm run test:engine-rules
+      - run: npm run test:engine-invariants
       - run: npm test
       - run: npm run build
       - run: npm run build:backend
-      - run: node scripts/smoke-production.mjs
+      - run: npm run test:harness-isolation
+      - run: npm run test:legacy-import
+        env:
+          ELO_TEST_POSTGRES_CONTAINER: ${{ job.services.postgres.id }}
+      - run: npm run test:readiness
+      - run: npm run test:integration
+      - run: npm run test:profile-names
+      - run: npm run test:durable-rate-limit
+      - run: npm run test:account-management
+      - run: npm run test:ranked-eligibility
+      - run: npm run test:account-sessions
+      - run: npm run test:google-auth
+      - run: npm run test:session-resume
+      - run: npm run test:leaderboard
+      - run: npm run test:ranked-ready
+      - run: npm run test:ranked-policy
+      - run: npm run test:ranked-events
+      - run: npm run test:rating-statistics
+      - run: npm run test:match-moderation
+      - run: npm run test:private-history
+      - run: npm run test:incremental-migration
+      - run: npm run test:ranked-liveness
+      - run: npm run test:realtime
+      - run: npm run test:deadline-worker
+      - run: npm run test:command-idempotency
+      - run: npm run test:command-crash
+      - run: npm run test:ranked-command-pipeline
+      - run: npm run test:ranked-integrity
+      - run: npm run test:settlement-crash
+      - run: npm run smoke:production
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke:browser

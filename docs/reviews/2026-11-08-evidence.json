@@ -1,0 +1,44 @@
+{
+  "scope": "isolated localhost database only",
+  "completedHands": 10,
+  "before": {
+    "rated": 1,
+    "rating": 1222,
+    "history": 1
+  },
+  "after": {
+    "rated": 2,
+    "rating": 1242,
+    "history": 2
+  },
+  "replayed": true,
+  "reviewedCommit": "381e4660264d0da74c6dd1ccafbb8dd496f7e214",
+  "otherIsolatedChecks": {
+    "shortAllIn": {
+      "street": "turn",
+      "previousStreetContributionPerSeat": 50,
+      "bet": 100,
+      "shortAllInTo": 150,
+      "nextActorCanRaise": true,
+      "expectedCanRaise": false
+    },
+    "resumeAfterTemporaryFailure": {
+      "initialView": "onboard",
+      "requestsAfterRecovery": [
+        "GET /api/health",
+        "POST /api/profile"
+      ],
+      "existingIdentityRetried": false
+    },
+    "cashRateExample": {
+      "lifetimeFirsts": 80,
+      "historyWindow": 60,
+      "displayedPercent": 133
+    },
+    "disconnectedRankedMatch": {
+      "elapsedMinutes": 10,
+      "completedHandsAfterOneRead": 0,
+      "phase": "hand-end"
+    }
+  }
+}

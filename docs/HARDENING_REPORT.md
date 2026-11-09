@@ -1,0 +1,44 @@
+# Hardening verification report
+
+The implementation is on the draft hardening PR. Production cutover, provider-backed acceptance and CI on main remain release gates. Source locations in the original review describe the baseline. Commit references below identify the fixes.
+
+## Findings
+
+- **F1 Exactly-once ranked settlement** · Fixed on branch · `3d5ff65`. [test-ranked-replay.ts](../scripts/test-ranked-replay.ts), [test-settlement-crash.ts](../scripts/test-settlement-crash.ts).
+- **F2 Cold-start identity recovery** · Fixed on branch · `e98ff7e`. [test-session-resume.ts](../scripts/test-session-resume.ts), [test-leaderboard.ts](../scripts/test-leaderboard.ts).
+- **F3 Durable storage and history migration** · Verified locally. Live rollout deferred · `08415b5`. Local copy and restore preserved 47 players, 235 history rows and one room. Current production export, managed Postgres credentials and staging are required for live migration. [test-legacy-import.mjs](../scripts/test-legacy-import.mjs), [test-harness-isolation.mjs](../scripts/test-harness-isolation.mjs), [test-readiness.ts](../scripts/test-readiness.ts), [smoke-production.mjs](../scripts/smoke-production.mjs).
+- **F4 Betting rules and chip conservation** · Fixed on branch · `7c8a78b`. [test-engine-rules.ts](../scripts/test-engine-rules.ts), [test-engine-invariants.ts](../scripts/test-engine-invariants.ts).
+- **F5 Real ladder and simulation provenance** · Fixed on branch · `3c9cc0a`. [test-leaderboard.ts](../scripts/test-leaderboard.ts).
+- **F6 Ready checks, timeouts and command replay** · Fixed on branch · `c15a693`. Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation. [test-ranked-ready.ts](../scripts/test-ranked-ready.ts), [test-ranked-liveness.ts](../scripts/test-ranked-liveness.ts), [test-deadline-worker.ts](../scripts/test-deadline-worker.ts), [test-command-idempotency.ts](../scripts/test-command-idempotency.ts), [test-command-crash.ts](../scripts/test-command-crash.ts), [test-ranked-command-pipeline.ts](../scripts/test-ranked-command-pipeline.ts), [test-game-command.ts](../scripts/test-game-command.ts), [smoke-production.mjs](../scripts/smoke-production.mjs).
+- **F7 Lifetime profile denominators** · Fixed on branch · `036dcb0`. Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels. [test-rating-statistics.ts](../scripts/test-rating-statistics.ts).
+- **F8 Private and practice history policy** · Fixed on branch · `2e9c4c0`. One unrated private result per participant and stable archived record after room expiry. Practice is explicitly local to the current tab. [test-private-history.ts](../scripts/test-private-history.ts), [smoke-production.mjs](../scripts/smoke-production.mjs).
+- **F9 Folded-card privacy and verification** · Fixed on branch · `bc6b84b`. New live rooms use a private seed exchange and an atomic hand archive. Public verification checks disclosed-card membership. Trusted audit verifies complete deck derivation and deal order. [test-secure-random.ts](../scripts/test-secure-random.ts), [test-folded-privacy.ts](../scripts/test-folded-privacy.ts), [test-fair-deck.ts](../scripts/test-fair-deck.ts), [test-fair-round.ts](../scripts/test-fair-round.ts), [test-client-seed.ts](../scripts/test-client-seed.ts), [test-live-fairness.ts](../scripts/test-live-fairness.ts), [test-fair-archive.ts](../scripts/test-fair-archive.ts), [smoke-production.mjs](../scripts/smoke-production.mjs).
+- **F10 Read-only ladder initialization** · Fixed on branch · `3c9cc0a`. [test-leaderboard.ts](../scripts/test-leaderboard.ts).
+- **F11 Global rank beyond the public page limit** · Fixed on branch · `3c9cc0a`. [test-leaderboard.ts](../scripts/test-leaderboard.ts).
+- **F12 Reloadable product routes** · Fixed on branch · `2e9c4c0`. Product routes restore location on reload. Terms and privacy display pending owner approval. [browser-product-check.mjs](../scripts/lib/browser-product-check.mjs), [test-incremental-migration.mjs](../scripts/test-incremental-migration.mjs).
+- **F13 Separate best-seen and winning hands** · Fixed on branch · `036dcb0`. Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels. [test-rating-statistics.ts](../scripts/test-rating-statistics.ts), [test-engine-rules.ts](../scripts/test-engine-rules.ts).
+- **A1 Remove client-controlled Cloud bot calls** · Fixed on branch · `beaae9f`. Practice uses the approved local heuristic. The unauthoritative Cloud model route and spend surface were removed. [test-production.ts](../scripts/test-production.ts), [smoke-production.mjs](../scripts/smoke-production.mjs).
+- **A2 Free checks on human timeout** · Fixed on branch · `7c8a78b`. [test-engine-rules.ts](../scripts/test-engine-rules.ts), [test-engine-invariants.ts](../scripts/test-engine-invariants.ts).
+- **A3 Fixed ranked blinds** · Fixed on branch · `7c8a78b`. [test-engine-rules.ts](../scripts/test-engine-rules.ts), [test-engine-invariants.ts](../scripts/test-engine-invariants.ts).
+- **A4 Unique verified ranked identities** · Fixed on branch · `a3bb2f4`. Canonical unique claims, durable mutation account/IP limits, verified service-boundary ranked access and separate placements implemented; multilingual moderation remains limited and provider setup pending. [test-profile-names.ts](../scripts/test-profile-names.ts), [test-durable-rate-limit.ts](../scripts/test-durable-rate-limit.ts), [test-ranked-eligibility.ts](../scripts/test-ranked-eligibility.ts).
+- **A5 Audited moderation** · Fixed on branch · `beaae9f`. Verified admin review, atomic void and compensating rating reversal with audit, and reserved/unique table names. [test-match-moderation.ts](../scripts/test-match-moderation.ts), [test-profile-names.ts](../scripts/test-profile-names.ts).
+- **A6 Recovery, export and closure** · Implemented. Live provider acceptance deferred · `a3bb2f4`. Google recovery, logout/revocation, owner export and profile closure are implemented and tested. Live provider credentials and owner-approved retention policy remain pending. [test-account-sessions.ts](../scripts/test-account-sessions.ts), [test-google-auth.ts](../scripts/test-google-auth.ts), [test-account-management.ts](../scripts/test-account-management.ts).
+- **A7 Bounded test sampling and hand termination** · Fixed on branch · `e25f469`. A 200-hand tournament budget is reported as a sampling limit, not a failure. Every sampled hand retains termination, legality, chip/card and stack assertions; the seeded 100,000-hand invariant suite remains mandatory. [test-engine.ts](../scripts/test-engine.ts), [test-engine-invariants.ts](../scripts/test-engine-invariants.ts).
+
+## Additional verification
+
+- Realtime at `a22d572` shares a PostgreSQL listener and durable room revisions. The protected-room load run delivered one real action to all 500 local spectators with 116 ms p95 and 0% failed spectators. [Realtime tests](workstreams/WS7.md)
+- Queue policy at `f5b893c` matched 9,976 of 10,000 seeded entries with 3 seconds median and 58 seconds p95. The other 24 expired at three minutes. [Matchmaking tests](workstreams/WS9.md)
+- The local history rehearsal imported and restored 47 players, 235 results and one room with matching hashes. The incremental migration preserved existing Postgres history and linked archived evidence to its original room instance. [Migration rehearsal](MIGRATION_REHEARSAL.md)
+- Browser acceptance covers the ten-hand ranked match, mid-hand reload, keyboard action, responsive widths and sampled accessibility states. [Verification scope](workstreams/WS13.md)
+
+## Deferred release items
+
+- **Google OAuth, managed Postgres and isolated staging credentials** · Deployment owner. Provider projects and deploy credentials are not configured for this branch.
+- **Production migration, main merge and cutover** · Deployment owner. Require a current authorized live export, accepted staging rehearsal and a rollout window. Main deploys the production application.
+- **Email magic links and hosted error monitoring** · Deployment owner. Email and monitoring provider setup is unavailable. Google recovery code and structured logs are available.
+- **Legal notices, minor consent and final retention policy** · Product owner. The owner deferred this launch work. The site shows pending notices.
+- **Continuous deadline processing** · Deployment owner. The approved free Render service can sleep. The worker catches up on wake.
+- **Full manual accessibility review** · Product owner. Automated axe and keyboard checks cover named browser states. Screen-reader usability needs a manual pass.
+
+[Architecture and flows](ARCHITECTURE.md) · [Operations](OPERATIONS.md) · [Ratings](RATINGS.md) · [Fairness](FAIRNESS.md)

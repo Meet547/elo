@@ -15,7 +15,7 @@ export async function forwardApi(request: Request, path: string[]) {
   const target = new URL(`/api/${path.join('/')}`, origin);
   target.search = incoming.search;
   const headers = new Headers();
-  for (const key of ['content-type', 'cookie', 'accept', 'last-event-id']) {
+  for (const key of ['content-type', 'cookie', 'accept', 'last-event-id', 'idempotency-key']) {
     const value = request.headers.get(key);
     if (value) headers.set(key, value);
   }
@@ -29,7 +29,7 @@ export async function forwardApi(request: Request, path: string[]) {
     if (body && body.byteLength > 65536) return Response.json({ error: 'Request too large.' }, { status: 413 });
     const response = await fetch(target, { method: request.method, headers, body, signal, cache: 'no-store', redirect: 'manual' });
     const outgoing = new Headers();
-    for (const key of ['content-type', 'retry-after', 'x-accel-buffering']) {
+    for (const key of ['content-type', 'retry-after', 'x-accel-buffering', 'location']) {
       const value = response.headers.get(key);
       if (value) outgoing.set(key, value);
     }

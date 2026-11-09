@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { dbEnabled } from "@/lib/db";
 import { commandLiveRoom, readLiveRoom, roomCode } from "@/lib/live-rooms";
-import { rateLimit, tooMany } from "@/lib/rate-limit";
+import { rateLimit } from "@/lib/rate-limit";
+import {runGameCommand,commandHttp,commandLimited} from "../../../../lib/command-receipts";
 import { sessionPlayer } from "@/lib/session";
 
 const action = z.discriminatedUnion("type", [
@@ -13,6 +14,9 @@ const payload = z.object({
   revision: z.int().nonnegative(),
   command: z.discriminatedUnion("type", [
     z.object({ type: z.literal("join") }), z.object({ type: z.literal("leave") }),
+    z.object({ type: z.literal("ready"), accept: z.boolean() }),
+    z.object({type:z.literal("seed-commit"),commitment:z.string().regex(/^[a-f0-9]{64}$/)}),
+    z.object({type:z.literal("seed-reveal"),seed:z.string().regex(/^[a-f0-9]{64}$/)}),
     z.object({ type: z.literal("start") }), z.object({ type: z.literal("act"), action }),
   ]),
 });
@@ -22,7 +26,7 @@ const json = (body: object, status = 200) =>
   NextResponse.json(body, { status, headers: { "Cache-Control": "no-store" } });
 
 export async function GET(req: NextRequest, { params }: Context) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return json({ error: "Claim an Elo profile first." }, 401);
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);
@@ -32,15 +36,17 @@ export async function GET(req: NextRequest, { params }: Context) {
 }
 
 export async function POST(req: NextRequest, { params }: Context) {
-  const player = sessionPlayer(req);
+  const player = await sessionPlayer(req);
   if (!player) return json({ error: "Claim an Elo profile first." }, 401);
   const code = roomCode((await params).code);
   if (!code) return json({ error: "Enter a valid room code." }, 404);
   if (!dbEnabled) return json({ error: "Live rooms need a database connection." }, 503);
-  const limit = rateLimit(req, `live:act:${player}`, 90, 60_000);
-  if (!limit.ok) return tooMany(limit.retryAfter);
-  const body = payload.safeParse(await req.json().catch(() => null));
-  if (!body.success) return json({ error: "Invalid table command." }, 400);
-  const { status, ...result } = await commandLiveRoom(code, player, body.data.revision, body.data.command);
-  return json(result, status);
+  const body=payload.safeParse(await req.json().catch(()=>null));
+  if(!body.success)return json({error:'Invalid table command.'},400);
+  try{return commandHttp(await runGameCommand(player,`room:${code}`,req.headers.get('idempotency-key'),body.data,async tx=>{
+    const limit=await rateLimit(req,'live:act',90,60_000,player,tx);
+    if(!limit.ok)return commandLimited(limit.retryAfter);
+    const {status,...result}=await commandLiveRoom(code,player,body.data.revision,body.data.command,tx);
+    return {status,body:result};
+  }));}catch{return json({error:'Could not apply the command. Retry with the same command key.'},503);}
 }

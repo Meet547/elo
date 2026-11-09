@@ -1,0 +1,11 @@
+# WS8 — private seed exchange and selective verification
+
+Implemented on the hardening branch, not deployed. See [FAIRNESS](../../FAIRNESS.md) for the protocol, precise proof scope, compatibility and retention limitations.
+
+New private rooms and ranked proposals commit a server seed at creation. Preparation freezes seats, pins each immutable client commitment before any reveal, derives hand-specific decks and salted Merkle roots, and archives private audit/public membership evidence atomically. Browsers pin the original server commitment, persist private seeds across same-tab reload, recover concurrent revision conflicts and fail closed on lost/mismatched committed secrets. No fallback contributions are invented. The exchange has a separate 15-second deadline after ranked readiness; timeout voids/requeues eligible confirmed players without ratings.
+
+The verification route reads only public evidence. The browser checks disclosed-card membership and offers those proofs for download. Full shuffle seeds, folded cards and undisclosed salts never leave live serializers, historical event projection or the public archive. Existing rooms without exchange metadata retain legacy behavior without fabricated evidence. Private audit replays actual dealing and burn order; full public seed replay is deliberately unavailable because it defeats the selected privacy policy.
+
+Evidence includes 10,000 internal seed/Merkle/engine replays, independent hashing, tamper rejection, before/after entropy/privacy/deal-barrier regressions, private browser seed recovery, transaction rollback before deal acknowledgement, immutable archive/roots, folded-card exclusion, showdown proof, expired-room verification, two real browser contexts and the ranked queue/ready/hand/settlement pipeline. Tests use synthetic identities and isolated loopback Postgres, without real Google/Ollama calls. A protected-room 500-spectator local k6 run delivered all updates, p95 116 ms, maximum 117 ms, 0% spectator failures.
+
+Public membership proofs do not establish unbiased shuffle, honest server seed combination or protection against malicious aborts. The UI states this scope. No independent security audit, hosted acceptance, full legal retention policy or zero-knowledge shuffle is claimed. Remaining queue/statistics/admin/product/accessibility work is tracked in later workstreams.

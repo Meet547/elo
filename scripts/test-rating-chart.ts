@@ -56,7 +56,7 @@ const sessions: SessionRow[] = [{ id: "test-session", hands: 10, net: 100, place
 try {
   useFelt.setState({ profile, sessions: [] });
   globalThis.fetch = (async (input: string | URL | Request) => String(input).includes("history")
-    ? Response.json({ sessions }) : Response.json({ player: { ...profile, rating: 1220 } })) as typeof fetch;
+    ? Response.json({ sessions, ownerId: profile.id, statistics: null, ratingHistory: [] }) : Response.json({ player: { ...profile, rating: 1220 } })) as typeof fetch;
   await useFelt.getState().fetchSessions();
   assert.equal(useFelt.getState().profile!.rating, 1220);
   assert.equal(useFelt.getState().sessions[0].ratingAfter, 1220);

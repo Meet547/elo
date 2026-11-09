@@ -1,0 +1,297 @@
+{
+  "baseline": "381e4660264d0da74c6dd1ccafbb8dd496f7e214",
+  "productionDataTouched": false,
+  "items": {
+    "F1": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS1",
+      "evidence": "backend/src/lib/live-rooms.ts:83; src/lib/poker/live-table.ts:139; isolated replay: rated 1\u21922, rating 1222\u21921242, history 1\u21922",
+      "tests": [
+        "scripts/test-ranked-replay.ts",
+        "scripts/test-settlement-crash.ts"
+      ],
+      "commitSubject": "fix(ranked): make terminal settlement atomic and replay safe",
+      "commit": "3d5ff65"
+    },
+    "F2": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS3",
+      "evidence": "src/store/game.ts:309,327; failed GET profile \u2192 health \u2192 POST profile without resume retry",
+      "tests": [
+        "scripts/test-session-resume.ts",
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(identity): preserve returning sessions through backend cold starts",
+      "commit": "e98ff7e"
+    },
+    "F3": {
+      "status": "verified-locally-rollout-deferred",
+      "owner": "Deployment owner",
+      "workstream": "WS4",
+      "evidence": "backend/src/lib/db.ts:5; prisma/schema.prisma:6; live free-host configuration from review; persistent export still required",
+      "reason": "Local copy and restore preserved 47 players, 235 history rows and one room. Current production export, managed Postgres credentials and staging are required for live migration.",
+      "tests": [
+        "scripts/test-legacy-import.mjs",
+        "scripts/test-harness-isolation.mjs",
+        "scripts/test-readiness.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "commit": "08415b5"
+    },
+    "F4": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS5",
+      "evidence": "src/lib/poker/engine.ts:318; turn 100\u2192150 short all-in, call, original bettor incorrectly canRaise=true",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
+    },
+    "F5": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS2",
+      "evidence": "backend/src/app/api/leaderboard/route.ts:21,55,134; response omits explicit simulation provenance",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
+    },
+    "F6": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS6",
+      "evidence": "backend/src/lib/live-rooms.ts:98; backend/src/lib/ranked-queue.ts:27; one ten-minute-late advance completes zero hands",
+      "tests": [
+        "scripts/test-ranked-ready.ts",
+        "scripts/test-ranked-liveness.ts",
+        "scripts/test-deadline-worker.ts",
+        "scripts/test-command-idempotency.ts",
+        "scripts/test-command-crash.ts",
+        "scripts/test-ranked-command-pipeline.ts",
+        "scripts/test-game-command.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation",
+      "commit": "c15a693"
+    },
+    "F7": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS10",
+      "evidence": "src/components/views/Profile.tsx:76; backend/src/app/api/history/route.ts:25; 80/60 displays 133%",
+      "tests": [
+        "scripts/test-rating-statistics.ts"
+      ],
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels.",
+      "commit": "036dcb0"
+    },
+    "F8": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS12",
+      "evidence": "backend/src/lib/live-rooms.ts:88; src/store/game.ts:855; current legacy practice settlement is disabled",
+      "tests": [
+        "scripts/test-private-history.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "One unrated private result per participant and stable archived record after room expiry. Practice is explicitly local to the current tab.",
+      "commit": "2e9c4c0"
+    },
+    "F9": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS8",
+      "evidence": "src/lib/poker/live-table.ts:220; src/lib/poker/cards.ts:103; betting-time filtering exists, permanent privacy does not",
+      "reason": "New live rooms use a private seed exchange and an atomic hand archive. Public verification checks disclosed-card membership. Trusted audit verifies complete deck derivation and deal order.",
+      "tests": [
+        "scripts/test-secure-random.ts",
+        "scripts/test-folded-privacy.ts",
+        "scripts/test-fair-deck.ts",
+        "scripts/test-fair-round.ts",
+        "scripts/test-client-seed.ts",
+        "scripts/test-live-fairness.ts",
+        "scripts/test-fair-archive.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "commit": "bc6b84b"
+    },
+    "F10": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS2",
+      "evidence": "backend/src/app/api/leaderboard/route.ts:21; four simultaneous localhost GETs: [200,500,500,500], Player PK violation",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
+    },
+    "F11": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS2",
+      "evidence": "backend/src/app/api/leaderboard/route.ts:148,153; actor derived from capped array",
+      "tests": [
+        "scripts/test-leaderboard.ts"
+      ],
+      "commitSubject": "fix(leaderboard): make public reads real-only and side-effect free",
+      "commit": "3c9cc0a"
+    },
+    "F12": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS4/WS12",
+      "evidence": "src/app/page.tsx:48; render.yaml:6; missing deep routes intentional in prototype but fail new route/reload requirement",
+      "tests": [
+        "scripts/lib/browser-product-check.mjs",
+        "scripts/test-incremental-migration.mjs"
+      ],
+      "reason": "Product routes restore location on reload. Terms and privacy display pending owner approval.",
+      "commit": "2e9c4c0"
+    },
+    "F13": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS5/WS10",
+      "evidence": "src/lib/poker/live-table.ts:95; src/store/game.ts:743; assignment only when empty, no score comparison",
+      "tests": [
+        "scripts/test-rating-statistics.ts",
+        "scripts/test-engine-rules.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels.",
+      "commit": "036dcb0"
+    },
+    "A1": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS11",
+      "evidence": "backend/src/app/api/bots/decide/route.ts:11; src/lib/poker/bot-request.ts:10; schema validation is not authoritative game-state verification",
+      "tests": [
+        "scripts/test-production.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "Practice uses the approved local heuristic. The unauthoritative Cloud model route and spend surface were removed.",
+      "commit": "beaae9f"
+    },
+    "A2": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS5",
+      "evidence": "src/lib/poker/live-table.ts:106; src/store/game.ts:670; user now explicitly requires check-when-legal",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
+    },
+    "A3": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS5",
+      "evidence": "src/lib/poker/engine.ts:80,194; src/lib/poker/live-table.ts:53; hand 9 becomes 15/30; approved replacement fixed 10/20",
+      "tests": [
+        "scripts/test-engine-rules.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
+    },
+    "A4": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS3",
+      "evidence": "backend/src/app/api/profile/route.ts:36,57; IP creation limiter exists (8 per ten minutes), but no verification or unique names; guests can currently queue",
+      "tests": [
+        "scripts/test-profile-names.ts",
+        "scripts/test-durable-rate-limit.ts",
+        "scripts/test-ranked-eligibility.ts"
+      ],
+      "reason": "Canonical unique claims, durable mutation account/IP limits, verified service-boundary ranked access and separate placements implemented; multilingual moderation remains limited and provider setup pending",
+      "commit": "a3bb2f4"
+    },
+    "A5": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS3/WS11/WS12",
+      "evidence": "src/app and backend/src/app inventories; no admin auth/void/reversal/moderation API; Player schema has no role",
+      "tests": [
+        "scripts/test-match-moderation.ts",
+        "scripts/test-profile-names.ts"
+      ],
+      "reason": "Verified admin review, atomic void and compensating rating reversal with audit, and reserved/unique table names.",
+      "commit": "beaae9f"
+    },
+    "A6": {
+      "status": "implemented-provider-acceptance-deferred",
+      "owner": "Deployment owner",
+      "workstream": "WS3/WS12",
+      "evidence": "backend/src/lib/session.ts:20,69; route inventory has no logout/revoke/delete/recovery; clear-cookie helper is not a workflow",
+      "tests": [
+        "scripts/test-account-sessions.ts",
+        "scripts/test-google-auth.ts",
+        "scripts/test-account-management.ts"
+      ],
+      "reason": "Google recovery, logout/revocation, owner export and profile closure are implemented and tested. Live provider credentials and owner-approved retention policy remain pending.",
+      "commit": "a3bb2f4"
+    },
+    "A7": {
+      "status": "fixed-on-branch",
+      "owner": "Codex",
+      "workstream": "WS5/WS13",
+      "evidence": "scripts/test-engine.ts:81\u201389; first baseline failed session 518 after 200 hands; rerun passed. This does not prove an individual hand fails to terminate.",
+      "reason": "A 200-hand tournament budget is reported as a sampling limit, not a failure. Every sampled hand retains termination, legality, chip/card and stack assertions; the seeded 100,000-hand invariant suite remains mandatory.",
+      "tests": [
+        "scripts/test-engine.ts",
+        "scripts/test-engine-invariants.ts"
+      ],
+      "commit": "e25f469"
+    }
+  },
+  "externalGates": [
+    {
+      "owner": "Deployment owner",
+      "gate": "Google OAuth, managed Postgres and isolated staging credentials",
+      "status": "deferred",
+      "reason": "Provider projects and deploy credentials are not configured for this branch."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Production migration, main merge and cutover",
+      "status": "deferred",
+      "reason": "Require a current authorized live export, accepted staging rehearsal and a rollout window. Main deploys the production application."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Email magic links and hosted error monitoring",
+      "status": "deferred",
+      "reason": "Email and monitoring provider setup is unavailable. Google recovery code and structured logs are available."
+    },
+    {
+      "owner": "Product owner",
+      "gate": "Legal notices, minor consent and final retention policy",
+      "status": "deferred",
+      "reason": "The owner deferred this launch work. The site shows pending notices."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Continuous deadline processing",
+      "status": "deferred",
+      "reason": "The approved free Render service can sleep. The worker catches up on wake."
+    },
+    {
+      "owner": "Product owner",
+      "gate": "Full manual accessibility review",
+      "status": "deferred",
+      "reason": "Automated axe and keyboard checks cover named browser states. Screen-reader usability needs a manual pass."
+    }
+  ]
+}

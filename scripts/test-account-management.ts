@@ -1,0 +1,33 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+import {NextRequest,NextResponse} from 'next/server';
+import {db} from '../backend/src/lib/db';
+import * as routes from '../backend/src/app/api/account/route';
+import {signSession,SESSION_COOKIE,sessionPlayer} from '../backend/src/lib/session';
+import {isolatedDatabaseUrl} from './lib/test-database.mjs';
+assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);process.env.SESSION_SECRET=randomBytes(32).toString('hex');
+try{
+ assert.equal('DELETE' in routes,true,'A6: account closure must revoke access while preserving anonymized match history');
+ const remove=Reflect.get(routes,'DELETE') as (req:NextRequest)=>Promise<NextResponse>;
+ const owner=await db.player.create({data:{name:'Private owner',nameKey:'private owner'}});
+ const other=await db.player.create({data:{name:'Other player'}});
+ const history={hands:10,finalStack:1600,net:100,place:1,ratingBefore:1200,ratingAfter:1220};
+ await db.session.create({data:{...history,playerId:owner.id}});await db.session.create({data:{...history,playerId:other.id}});
+ await db.externalIdentity.create({data:{provider:'google',subject:'closure-fixture',email:'private@fixture.example',playerId:owner.id}});
+ const cookie=`${SESSION_COOKIE}=${signSession(owner.id)}`;
+ const request=(method:string,body?:object)=>new NextRequest('https://fixture.example/api/account',{method,headers:{cookie,'content-type':'application/json','x-elo-client-ip':'fixture-account'},body:body?JSON.stringify(body):undefined});
+ const {GET:exportData}=await import('../backend/src/app/api/account/export/route');
+ const exported=await exportData(request('GET'));assert.equal(exported.status,200);
+ const data=await exported.json();assert.equal(data.player.id,owner.id);assert.equal(data.history.length,1);assert.equal(data.history[0].playerId,owner.id);
+ assert.equal((await remove(request('DELETE',{confirm:'no'}))).status,400);
+ const room=await db.liveRoom.create({data:{code:'TEST01',state:JSON.stringify({status:'playing',players:[{id:owner.id}]}),expiresAt:new Date(Date.now()+60000)}});
+ assert.equal((await remove(request('DELETE',{confirm:'DELETE'}))).status,409,'active games must not be orphaned by closure');
+ await db.liveRoom.update({where:{code:room.code},data:{state:JSON.stringify({status:'waiting',players:[{id:owner.id}]})}});
+ assert.equal((await remove(request('DELETE',{confirm:'DELETE'}))).status,200);
+ assert.equal(await sessionPlayer(request('GET')),null);
+ const closed=await db.player.findUniqueOrThrow({where:{id:owner.id}});assert(closed.deletedAt);assert.equal(closed.nameKey,null);assert.equal(closed.name,'Deleted player');
+ assert.equal(await db.session.count({where:{playerId:owner.id}}),1,'account closure must not erase settlement audit history');
+ assert.equal(await db.externalIdentity.count({where:{playerId:owner.id}}),0);
+ assert.equal((await exportData(request('GET'))).status,401);
+ console.log('PASS — owner-only export, explicit closure, credential removal and preserved anonymized history');
+}finally{await db.$disconnect();}

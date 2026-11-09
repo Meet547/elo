@@ -1,19 +1,20 @@
 "use client";
 
+import { postGameCommand } from "@/lib/game-command";
 import { useRouter } from "next/navigation";
 import { useCallback, useEffect, useState } from "react";
 import { ArrowRight, Trophy } from "lucide-react";
 import { Shell } from "./Shell";
 import { TactileButton } from "@/components/felt/kit";
+import { PROVISIONAL_SESSIONS } from "@/lib/rating";
 import { RANKED_HANDS, type RankedQueueStatus } from "@/lib/poker/ranked-match";
 import { useFelt } from "@/store/game";
+import { Reconnect } from "./Reconnect";
 import { Onboard } from "./Onboard";
 
 async function queueRequest(command: "join" | "poll" | "cancel", signal?: AbortSignal): Promise<RankedQueueStatus> {
-  const response = await fetch("/api/ranked", {
-    method: "POST", headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({ command }), signal,
-  });
+  if (signal?.aborted) throw new DOMException('Aborted','AbortError');
+  const response = await postGameCommand("/api/ranked", { command }, { signal, owner:useFelt.getState().profile?.id });
   const data = await response.json();
   if (!response.ok) throw new Error(data.error ?? "Could not reach the ranked queue.");
   return data;
@@ -21,12 +22,14 @@ async function queueRequest(command: "join" | "poll" | "cancel", signal?: AbortS
 
 export function RankedEntry({ autoQueue }: { autoQueue: boolean }) {
   const profile = useFelt((state) => state.profile);
+  const bootError = useFelt((state) => state.bootError);
   const booting = useFelt((state) => state.booting);
   const boot = useFelt((state) => state.boot);
   useEffect(() => { if (!profile) void boot(); }, [boot, profile]);
   if (!profile && booting) return <main className="elo-page" role="status">Opening ranked play…</main>;
+  if (!profile && bootError) return <Reconnect />;
   if (!profile) return <Onboard />;
-  return <Shell><RankedQueue autoQueue={autoQueue} rating={profile.rating} /></Shell>;
+  return <Shell><p className="mb-3 text-sm text-ink-soft">Verified accounts only · 10/20 blinds · {(profile.rankedPlacements ?? 0) < PROVISIONAL_SESSIONS ? `Placement pool: ${profile.rankedPlacements ?? 0}/${PROVISIONAL_SESSIONS} matches completed` : "Established pool"}</p><RankedQueue autoQueue={autoQueue} rating={profile.rating} /></Shell>;
 }
 
 function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number }) {
@@ -56,18 +59,35 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
 
   useEffect(() => {
     if (busy || queue?.status !== "searching") return;
-    const controller = new AbortController();
+    let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    async function poll() {
-      try {
-        accept(await queueRequest("poll", controller.signal));
-      } catch (cause) {
-        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Reconnecting to the queue…");
-      }
-      if (!controller.signal.aborted) timer = setTimeout(poll, 1_500);
-    }
-    timer = setTimeout(poll, 1_500);
-    return () => { controller.abort(); clearTimeout(timer); };
+    let stream: EventSource | undefined;
+    let delay = 750;
+    const connect = () => {
+      if (stopped) return;
+      const source = new EventSource("/api/ranked/events");
+      stream = source;
+      source.onmessage = (event) => {
+        if (stopped || stream !== source) return;
+        delay = 750;
+        const next = JSON.parse(event.data) as RankedQueueStatus;
+        accept(next);
+        if (next.status !== "searching") source.close();
+      };
+      source.addEventListener("unavailable", (event) => {
+        source.close();
+        setQueue(null);
+        setError(JSON.parse((event as MessageEvent).data));
+      });
+      source.onerror = () => {
+        source.close();
+        if (stopped || stream !== source) return;
+        timer = setTimeout(connect, delay);
+        delay = Math.min(delay * 2, 10_000);
+      };
+    };
+    connect();
+    return () => { stopped = true; stream?.close(); clearTimeout(timer); };
   }, [accept, busy, queue?.status]);
 
   useEffect(() => {
@@ -99,7 +119,8 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
           <h1 className="mt-2 font-display text-4xl leading-none sm:text-5xl lg:text-6xl">Find your next rival.</h1>
           <p className="mt-4 max-w-lg text-sm leading-relaxed text-[#e3e7d9] sm:text-base">
             One opponent near your rating. Ten hands, fresh $1,500 stacks each hand.
-            The player with the most total chip profit wins.
+            The player with the most total chip profit wins. Confirm within 15 seconds before the deal.
+            Three missed decisions or 60 seconds offline forfeits the match; both players absent voids it.
           </p>
         </section>
         <section className="elo-panel mt-5 p-5 sm:p-7">
@@ -117,8 +138,9 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
             </h2>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-soft">
               {matched ? "Taking you to the table."
-                : searching ? "Keep this screen open. The match starts automatically when another player is found."
-                  : "Elo matches real players by rating. After the result is saved, your next search uses your updated rating."}
+                : searching ? "Keep this screen open for the ready check. Searches end after three minutes."
+                  : queue?.status === "expired" ? "This search reached its time limit. You can start a new search."
+                    : "Elo matches real players by rating. After the result is saved, your next search uses your updated rating."}
             </p>
             {searching && (
               <div className="tnum mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-soft">

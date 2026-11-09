@@ -124,6 +124,53 @@ export function softLimit(raw: number, cap: number): number {
   return cap * Math.tanh(raw / cap);
 }
 
+const DAY_MS = 86_400_000;
+
+/** Standard Glicko-2 uncertainty growth over complete inactive periods. */
+export function inactiveDeviation(rd: number, volatility: number, periods: number): number {
+  return Math.hypot(rd, SCALE * volatility * Math.sqrt(Math.max(0, periods)));
+}
+
+export function currentDeviation(player: { rd: number; volatility: number; ratedAt?: Date | null; createdAt: Date }, now = Date.now()) {
+  const periods = Math.floor((now - (player.ratedAt ?? player.createdAt).getTime()) / DAY_MS);
+  return clamp(inactiveDeviation(player.rd, player.volatility, periods), MIN_RD, MAX_RD);
+}
+
+export function glickoPeriod(
+  { rating, rd, volatility }: Pick<RatingSnapshot, "rating" | "rd" | "volatility">,
+  results: { rating: number; rd: number; score: number }[],
+  tau = TAU,
+  boundVolatility = (sigma: number) => sigma,
+) {
+  if (!results.length) return { rating, rd: inactiveDeviation(rd, volatility, 1), volatility, expected: 0.5 };
+  const mu = (rating - 1500) / SCALE;
+  const phi = rd / SCALE;
+
+  let vInv = 0;
+  let dSum = 0;
+  let eSum = 0;
+  for (const o of results) {
+    const muJ = (o.rating - 1500) / SCALE;
+    const phiJ = o.rd / SCALE;
+    const gj = g(phiJ);
+    const E = expected(mu, muJ, phiJ);
+    const s = o.score;
+    vInv += gj * gj * E * (1 - E);
+    dSum += gj * (s - E);
+    eSum += E;
+  }
+  if (vInv <= 0) return { rating, rd, volatility, expected: eSum / results.length };
+
+  const v = 1 / vInv;
+  const delta = v * dSum;
+  const sigmaPrime = boundVolatility(newVolatility(phi, v, delta, volatility, tau));
+  const phiStar = Math.sqrt(phi * phi + sigmaPrime * sigmaPrime);
+  const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
+  const muPrime = mu + phiPrime * phiPrime * dSum;
+
+  return { rating: muPrime * SCALE + 1500, rd: phiPrime * SCALE, volatility: sigmaPrime, expected: eSum / results.length };
+}
+
 /**
  * One rating period for one seat.
  * `field` are the other seats with their pre-session ratings and places.
@@ -141,32 +188,12 @@ export function applySession(
   };
   if (field.length === 0) return { ...base, delta: 0, expected: 0.5 };
 
-  const mu = (base.rating - 1500) / SCALE;
-  const phi = base.rd / SCALE;
-
-  let vInv = 0;
-  let dSum = 0;
-  let eSum = 0;
-  for (const o of field) {
-    const muJ = (clamp(o.rating, 100, 4000) - 1500) / SCALE;
-    const phiJ = clamp(o.rd || START_RD, MIN_RD, MAX_RD) / SCALE;
-    const gj = g(phiJ);
-    const E = expected(mu, muJ, phiJ);
-    const s = myPlace < o.place ? 1 : myPlace > o.place ? 0 : 0.5;
-    vInv += gj * gj * E * (1 - E);
-    dSum += gj * (s - E);
-    eSum += E;
-  }
-  if (vInv <= 0) return { ...base, delta: 0, expected: eSum / field.length };
-
-  const v = 1 / vInv;
-  const delta = v * dSum;
-  const sigmaPrime = clamp(newVolatility(phi, v, delta, base.volatility), 0.02, 0.2);
-  const phiStar = Math.sqrt(phi * phi + sigmaPrime * sigmaPrime);
-  const phiPrime = 1 / Math.sqrt(1 / (phiStar * phiStar) + 1 / v);
-  const muPrime = mu + phiPrime * phiPrime * dSum;
-
-  const raw = (muPrime - mu) * SCALE;
+  const period = glickoPeriod(base, field.map(opponent => ({
+    rating: clamp(opponent.rating, 100, 4000),
+    rd: clamp(opponent.rd || START_RD, MIN_RD, MAX_RD),
+    score: myPlace < opponent.place ? 1 : myPlace > opponent.place ? 0 : 0.5,
+  })), TAU, sigma => clamp(sigma, 0.02, 0.2));
+  const raw = period.rating - base.rating;
   const cap = exposureCap(base.rated, base.rating);
   const deltaOut = Math.round(softLimit(raw, cap));
   // the capped move is the new state: the printed delta, the stored rating and
@@ -175,11 +202,11 @@ export function applySession(
 
   return {
     rating: ratingOut,
-    rd: Math.round(clamp(phiPrime * SCALE, MIN_RD, MAX_RD)),
-    volatility: Number(sigmaPrime.toFixed(6)),
+    rd: Math.round(clamp(period.rd, MIN_RD, MAX_RD)),
+    volatility: Number(period.volatility.toFixed(6)),
     rated: base.rated + 1,
     delta: ratingOut - base.rating,
-    expected: eSum / field.length,
+    expected: period.expected,
   };
 }
 

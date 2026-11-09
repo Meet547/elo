@@ -3,35 +3,49 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
-  url      = env("DATABASE_URL")
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 model Player {
-  id         String    @id @default(cuid())
-  name       String
-  rating     Int       @default(1200)
+  id          String             @id @default(cuid())
+  rankedPlacements Int @default(0)
+  nameKey     String? @unique
+  name        String
+  rating      Int                @default(1200)
   /// Glicko-2 rating deviation — how sure the ladder is of this rating
-  rd         Float     @default(110)
+  rd          Float              @default(110)
   /// Glicko-2 volatility — how erratic recent sessions have been
-  volatility Float     @default(0.06)
+  volatility  Float              @default(0.06)
   /// rated sessions played (drives provisional status and the exposure cap)
-  rated      Int       @default(0)
-  peak       Int       @default(1200)
-  hands      Int       @default(0)
-  cashes     Int       @default(0)
-  netChips   Int       @default(0)
-  biggestPot Int       @default(0)
-  streak     Int       @default(0)
-  isRival    Boolean   @default(false)
-  createdAt  DateTime  @default(now())
-  lastSeen   DateTime  @default(now())
-  results    Session[]
+  rated       Int                @default(0)
+  peak        Int                @default(1200)
+  hands       Int                @default(0)
+  cashes      Int                @default(0)
+  netChips    Int                @default(0)
+  biggestPot  Int                @default(0)
+  streak      Int                @default(0)
+  isSimulated Boolean            @default(false) @map("isRival")
+  createdAt   DateTime           @default(now())
+  ratedAt     DateTime?
+  lastSeen    DateTime           @default(now())
+  results     Session[]
+  matchSeats  MatchParticipant[]
+  commandReceipts CommandReceipt[]
+  authSessions AuthSession[]
+  identities ExternalIdentity[]
+  legacySessionsRevoked Boolean @default(false)
+  deletedAt DateTime?
 }
 
 model Session {
   id           String   @id @default(cuid())
   playerId     String
+  privateRoomId String?
+  matchId      String?
+  match        Match?   @relation(fields: [matchId], references: [id])
+  mode         GameMode @default(LEGACY)
   player       Player   @relation(fields: [playerId], references: [id])
   hands        Int
   buyIn        Int      @default(1500)
@@ -43,21 +57,38 @@ model Session {
   ratingAfter  Int
   biggestPot   Int      @default(0)
   potsWon      Int      @default(0)
+  bestSeenHand String?
+  bestSeenScore Int?
+  bestWinningHand String?
+  bestWinningScore Int?
   bestHand     String?
   exit         String?
   createdAt    DateTime @default(now())
+
+  @@unique([matchId, playerId])
+  @@unique([privateRoomId, playerId])
+  @@index([playerId, createdAt])
 }
 
 model LiveRoom {
   code      String   @id
+  instanceId String @unique @default(uuid())
+  events RoomEvent[]
+  nextDeadlineAt DateTime?
   revision  Int      @default(0)
+  matchId   String?  @unique
+  match     Match?   @relation(fields: [matchId], references: [id])
   state     String
   expiresAt DateTime
 
   @@index([expiresAt])
+  @@index([nextDeadlineAt])
 }
 
 model RankedSeat {
+  pool String @default("PLACEMENT")
+  rd Float @default(350)
+  networkTag String?
   playerId String   @id
   rating   Int
   joinedAt DateTime
@@ -65,4 +96,183 @@ model RankedSeat {
   roomCode String?
 
   @@index([roomCode, rating, joinedAt])
+  @@index([pool, roomCode, rating])
+}
+
+enum GameMode {
+  LEGACY
+  PRACTICE
+  PRIVATE
+  RANKED
+}
+
+enum MatchState {
+  QUEUED
+  PROPOSED
+  READY
+  ACTIVE
+  SETTLING
+  SETTLED
+  VOID
+  FORFEIT
+}
+
+model Match {
+  id           String             @id @default(cuid())
+  state        MatchState         @default(QUEUED)
+  sharedNetwork Boolean @default(false)
+  handNumber   Int                @default(0)
+  version      Int                @default(0)
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+  readyDeadlineAt DateTime?
+  startedAt    DateTime?
+  finishedAt   DateTime?
+  room         LiveRoom?
+  participants MatchParticipant[]
+  settlement   MatchSettlement?
+  moderation   MatchModeration?
+  history      Session[]
+  transitions  MatchTransition[]
+
+  @@index([state, updatedAt])
+}
+
+model MatchParticipant {
+  matchId        String
+  playerId       String
+  seat           Int
+  lastSeenAt DateTime @default(now())
+  ratingSnapshot Json
+  match          Match  @relation(fields: [matchId], references: [id])
+  player         Player @relation(fields: [playerId], references: [id])
+
+  @@id([matchId, playerId])
+  @@unique([matchId, seat])
+  @@index([playerId])
+}
+
+model MatchSettlement {
+  id               String   @id @default(cuid())
+  matchId          String   @unique
+  match            Match    @relation(fields: [matchId], references: [id])
+  algorithmVersion String
+  result           Json
+  createdAt        DateTime @default(now())
+}
+
+model MatchTransition {
+  id        String     @id @default(cuid())
+  matchId   String
+  match     Match      @relation(fields: [matchId], references: [id])
+  from      MatchState
+  to        MatchState
+  createdAt DateTime   @default(now())
+
+  @@index([matchId, createdAt])
+}
+
+model AuthSession {
+  tokenHash String @id
+  playerId String
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@index([playerId])
+  @@index([expiresAt])
+}
+
+model ExternalIdentity {
+  provider String
+  subject String
+  playerId String
+  player Player @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  email String
+  verifiedAt DateTime @default(now())
+  @@id([provider, subject])
+  @@unique([playerId, provider])
+}
+
+model OAuthAttempt {
+  stateHash String @id
+  browserHash String
+  nonce String
+  verifier String
+  playerId String?
+  expiresAt DateTime
+  @@index([expiresAt])
+}
+
+model RateWindow {
+  key String @id
+  count Int
+  resetAt DateTime
+  @@index([resetAt])
+}
+
+model CommandReceipt {
+  actorId String
+  actor Player @relation(fields:[actorId],references:[id],onDelete:Cascade)
+  scope String @db.VarChar(80)
+  key String @db.Uuid
+  requestHash String @db.Char(64)
+  response Json
+  createdAt DateTime @default(now())
+  expiresAt DateTime
+  @@id([actorId,scope,key])
+  @@index([expiresAt])
+}
+
+model RoomEvent {
+  roomCode String
+  room LiveRoom @relation(fields:[roomCode],references:[code],onDelete:Cascade)
+  revision Int
+  state Json
+  createdAt DateTime @default(now())
+  @@id([roomCode,revision])
+  @@index([createdAt])
+}
+
+model FairHand {
+  handId String @id
+  roomInstanceId String?
+  roomCode String
+  handNo Int
+  publicData Json
+  auditData Json
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([roomCode, handNo])
+  @@index([roomInstanceId, handNo])
+}
+
+model RatingDaily {
+  day           DateTime @id @db.Date
+  capturedAt    DateTime
+  playerCount   Int
+  ratingTotal   BigInt
+  accountingTotal BigInt
+  ledgerDelta   BigInt
+  unexplained   BigInt?
+}
+
+model MatchModeration {
+  matchId     String @id
+  match       Match @relation(fields: [matchId], references: [id])
+  actorId     String
+  action      String
+  reason      String
+  createdAt   DateTime @default(now())
+  adjustments RatingAdjustment[]
+}
+
+model RatingAdjustment {
+  matchId     String
+  moderation  MatchModeration @relation(fields: [matchId], references: [matchId])
+  playerId    String
+  before      Int
+  after       Int
+  delta       Int
+  @@id([matchId, playerId])
+  @@index([playerId])
 }

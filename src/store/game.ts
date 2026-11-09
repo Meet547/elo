@@ -7,9 +7,9 @@
 // ---------------------------------------------------------------------------
 
 import { create } from "zustand";
-import { waitForRoomReady } from "@/lib/room-ready";
+import { resumeProfile } from "@/lib/session-resume";
 import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
-import { requestBotDecision } from "@/lib/poker/bot-request";
+import type { HandValue } from "@/lib/poker/evaluator";
 import { shortHandLabel } from "@/lib/poker/hand-label";
 import {
   BotAction,
@@ -23,7 +23,7 @@ import {
   newSession,
   startHand,
 } from "@/lib/poker/engine";
-import { ROSTER, botView, type RosterBot } from "@/lib/poker/ai";
+import { ROSTER, botDecide, botThinkTime, botView, type RosterBot } from "@/lib/poker/ai";
 import { buildTableOffer, type TableOffer } from "@/lib/matchmaking";
 import {
   buildLocalLadder,
@@ -60,6 +60,8 @@ export interface TableOpponent {
 }
 
 export interface LadderRow {
+  isSimulated: boolean;
+  provenance: "REAL" | "SIMULATED";
   id: string;
   name: string;
   rating: number;
@@ -76,6 +78,7 @@ export interface LadderRow {
 }
 
 export interface WireRow {
+  provenance: "RANKED" | "UNRANKED" | "LEGACY" | "SIMULATED";
   id: string;
   name: string;
   place: number;
@@ -87,6 +90,9 @@ export interface WireRow {
 }
 
 export interface Profile {
+  rankedPlacements?: number;
+  nameKey?: string | null;
+  rank?: number;
   id: string;
   name: string;
   rating: number;
@@ -107,6 +113,11 @@ export interface Profile {
 /** One settled session from the ledger — the raw material of the profile. */
 export interface SessionRow {
   id: string;
+  matchId?: string | null;
+  match?: { moderation: { action: string } | null } | null;
+  mode?: "RANKED" | "LEGACY" | "PRIVATE" | "PRACTICE";
+  bestSeenHand?: string | null;
+  bestWinningHand?: string | null;
   hands: number;
   net: number;
   place: number;
@@ -156,6 +167,7 @@ export interface TurnClock {
 interface FeltState {
   view: View;
   booting: boolean;
+  bootError: string | null;
   token: string | null;
   profile: Profile | null;
   ladder: LadderRow[];
@@ -191,6 +203,8 @@ interface FeltState {
   cashOutQueued: boolean;
   sessionBiggestPot: number;
   sessionBestHand?: string;
+  sessionBestSeen?: HandValue;
+  sessionBestWinning?: HandValue;
   /** pots the human took down this session */
   sessionPotsWon: number;
   /** how the human's stack reached zero, if it did */
@@ -202,6 +216,8 @@ interface FeltState {
   wantsLeave: boolean;
 
   sessions: SessionRow[];
+  ratingHistory: import("@/lib/profile-statistics").RatingHistoryEvent[];
+  profileStatistics: import("@/lib/profile-statistics").ProfileStatistics | null;
   sessionsLoading: boolean;
 }
 
@@ -265,9 +281,12 @@ function livePool(ladder: LadderRow[]): RosterBot[] | undefined {
   return out.length >= 10 ? out : undefined;
 }
 
+let bootFlight: Promise<void> | null = null;
+
 export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   view: "onboard",
   booting: true,
+  bootError: null,
   token: null,
   profile: null,
   ladder: [],
@@ -303,29 +322,39 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   wantsLeave: false,
 
   sessions: [],
+  profileStatistics: null,
+  ratingHistory: [],
   sessionsLoading: false,
 
   // ------------------------------------------------------------------ boot
   async boot() {
     if (typeof window === "undefined") return;
-    const recent = readRecent();
-    set({ muted: window.localStorage.getItem("felt_muted") === "1", recent });
-    // identity lives in an httpOnly cookie; the client never holds a token
-    try {
-      const res = await fetch("/api/profile");
-      if (res.ok) {
-        const { player } = await res.json();
-        set({ token: player.id, profile: player, view: "lobby" });
+    if (bootFlight) return bootFlight;
+    bootFlight = (async () => {
+      set({ booting: true, bootError: null });
+      const recent = readRecent();
+      set({ muted: window.localStorage.getItem("felt_muted") === "1", recent });
+      try {
+        const player = await resumeProfile<Profile>();
+        if (player) set({ token: player.id, profile: player, view: "lobby" });
+        set({ booting: false });
+        void get().refreshLadder();
+      } catch (error) {
+        set({ booting: false, bootError: error instanceof Error ? error.message : "Could not restore your seat." });
       }
-    } catch {
-      // offline — onboarding still works when the API returns
-    }
-    set({ booting: false });
-    void get().refreshLadder();
+    })();
+    try { await bootFlight; } finally { bootFlight = null; }
   },
 
   async createProfile(name) {
-    await waitForRoomReady();
+    // Resolve the cookie before any identity mutation, including a retry from onboarding.
+    const existing = await resumeProfile<Profile>();
+    if (existing) {
+      set({ token: existing.id, profile: existing, view: "lobby", bootError: null });
+      void get().refreshLadder();
+      get().reseedOffer();
+      return;
+    }
     const res = await fetch("/api/profile", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
@@ -333,7 +362,10 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
     });
     if (!res.ok) {
       if (res.status === 429) throw new Error("Too many attempts. Wait a moment and try again.");
-      if (res.status === 400) throw new Error("Enter a valid table name.");
+      if (res.status === 400 || res.status === 409) {
+        const data = await res.json().catch(() => null);
+        throw new Error(data?.error ?? "Enter a valid, available table name.");
+      }
       throw new Error("The room connection was interrupted. Please try Claim Seat again.");
     }
     const { player } = await res.json();
@@ -424,6 +456,8 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
       bustOrder: [],
       sessionBiggestPot: 0,
       sessionBestHand: undefined,
+      sessionBestSeen: undefined,
+      sessionBestWinning: undefined,
       sessionPotsWon: 0,
       humanBust: null,
       lastProof: null,
@@ -537,8 +571,8 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
         fetch("/api/profile", { cache: "no-store" }),
       ]);
       if (!history.ok || !identity.ok) throw new Error("Could not refresh rating history.");
-      const [{ sessions }, { player }] = await Promise.all([history.json(), identity.json()]);
-      set({ sessions, profile: player });
+      const [{ sessions, statistics, ratingHistory, ownerId }, { player }] = await Promise.all([history.json(), identity.json()]);
+      if (get().profile?.id === player.id && ownerId === player.id) set({ sessions, profileStatistics: statistics, ratingHistory, profile: player });
     } finally {
       set({ sessionsLoading: false });
     }
@@ -667,7 +701,7 @@ function startShotClock() {
       const st = useFelt.getState();
       const s = st.game;
       if (!s || !st.awaitingHuman) return;
-      const act = { type: "fold" as const };
+      const act: BotAction = { type: legalActions(s, humanSeat(s).idx).canCheck ? "check" : "fold" };
       applyAndSound(s, humanSeat(s).idx, act);
       useFelt.setState({ awaitingHuman: false, legal: null, shotClock: -1, turn: null });
       bump();
@@ -703,21 +737,17 @@ function tick() {
     // the view is frozen now — the bot decides only from what it can see at
     // the moment the clock starts, never from anything that happens after
     const view = botView(s, s.toAct);
-    const think = 0;
+    const think = Math.min(BOT_TURN_MS, botThinkTime(view));
     useFelt.setState({ turn: { seat: seat.idx, duration: BOT_TURN_MS, start: Date.now() } });
     const actor = s.toAct;
     const hand = s.handNo;
     schedule(() => {
-      void (async () => {
-        const action = await requestBotDecision(view);
-        const g = useFelt.getState().game;
-        // Responses from a hand/table that was left must never act on a new one.
-        if (g !== s || g.phase !== "betting" || g.handNo !== hand || g.toAct !== actor) return;
-        applyAndSound(g, actor, action);
-        useFelt.setState({ turn: null });
-        bump();
-        tick();
-      })();
+      const game = useFelt.getState().game;
+      if (game !== s || game.phase !== "betting" || game.handNo !== hand || game.toAct !== actor) return;
+      applyAndSound(game, actor, botDecide(view));
+      useFelt.setState({ turn: null });
+      bump();
+      tick();
     }, think);
     return;
   }
@@ -725,6 +755,10 @@ function tick() {
   if (s.phase === "showdown") {
     playSweep();
     const awards = s.awards ?? [];
+    const seen = humanSeat(s).revealed;
+    if (seen && (!useFelt.getState().sessionBestSeen || seen.score > useFelt.getState().sessionBestSeen!.score)) {
+      useFelt.setState({ sessionBestSeen: seen });
+    }
     if (awards.length) {
       const human = humanSeat(s);
       if (awards.some((a) => a.seatIdx === human.idx)) playWin();
@@ -740,8 +774,8 @@ function tick() {
       });
       for (const a of awards) {
         const seat = s.seats[a.seatIdx];
-        if (seat.isHuman && a.hand && !useFelt.getState().sessionBestHand) {
-          useFelt.setState({ sessionBestHand: a.hand.name });
+        if (seat.isHuman && a.hand && (!useFelt.getState().sessionBestWinning || a.hand.score > useFelt.getState().sessionBestWinning!.score)) {
+          useFelt.setState({ sessionBestHand: a.hand.name, sessionBestWinning: a.hand });
         }
       }
     }
@@ -753,6 +787,10 @@ function tick() {
   if (s.phase === "hand-end") {
     playSweep();
     const awards = s.awards ?? [];
+    const seen = humanSeat(s).revealed;
+    if (seen && (!useFelt.getState().sessionBestSeen || seen.score > useFelt.getState().sessionBestSeen!.score)) {
+      useFelt.setState({ sessionBestSeen: seen });
+    }
     if (awards.length) {
       const a = awards[0];
       const seat = s.seats[a.seatIdx];
@@ -868,18 +906,6 @@ async function settleSession() {
     return b.stack - a.stack;
   });
   const place = order.findIndex((x) => x.isHuman) + 1;
-  const oppIds = st.opponents.map((o) => o.id);
-  const oppPlaces = oppIds.map((id) => order.findIndex((x) => x.id === id) + 1);
-
-  // the "why" line: how the stack actually reached zero
-  const hb = useFelt.getState().humanBust;
-  const exit =
-    human.stack <= 0 && hb
-      ? hb.by
-        ? `out in hand ${hb.hand} — the $${(hb.pot ?? 0).toLocaleString("en-US")} pot went to ${hb.by}`
-        : `out in hand ${hb.hand} — blinded down to nothing`
-      : null;
-
   const base = {
     tableNo: st.tableNo,
     seat: human.idx + 1,
@@ -892,59 +918,6 @@ async function settleSession() {
     potsWon: useFelt.getState().sessionPotsWon,
     settledAt: new Date(),
   };
-
-  try {
-    const res = await fetch("/api/settle", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        hands: base.hands,
-        finalStack: base.finalStack,
-        place,
-        seats: base.seats,
-        biggestPot: base.biggestPot,
-        bestHand: base.bestHand ?? null,
-        exit,
-        potsWon: base.potsWon,
-        opponentIds: oppIds,
-        places: oppPlaces,
-        stacks: oppIds.map((id) => s.seats.find((x) => x.id === id)?.stack ?? 0),
-      }),
-    });
-    if (res.ok) {
-      const data = await res.json();
-      useFelt.setState({
-        settleResult: {
-          ...base,
-          ratingBefore: data.ratingBefore,
-          ratingAfter: data.ratingAfter,
-          delta: data.delta,
-          rankBefore: data.rankBefore,
-          rankAfter: data.rankAfter,
-          rdAfter: data.rd,
-          expected: data.expected,
-          fieldAvg: data.fieldAvg,
-          provisional: data.provisional,
-        },
-        profile: {
-          ...me,
-          rating: data.ratingAfter,
-          peak: data.peak,
-          rd: data.rd ?? me.rd,
-          rated: data.rated ?? (me.rated ?? 0) + 1,
-        },
-        view: "settle",
-        settling: false,
-        humanBust: null,
-        wantsLeave: false,
-        cashOutQueued: false,
-      });
-      playStamp();
-      return;
-    }
-  } catch {
-    // offline fallback below
-  }
 
   useFelt.setState({
     settleResult: {

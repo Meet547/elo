@@ -1,0 +1,38 @@
+import assert from 'node:assert/strict';
+import {randomBytes} from 'node:crypto';
+import {NextRequest,NextResponse} from 'next/server';
+import {db} from '../backend/src/lib/db';
+import * as sessions from '../backend/src/lib/session';
+import {POST as logout} from '../backend/src/app/api/auth/logout/route';
+import {isolatedDatabaseUrl} from './lib/test-database.mjs';
+assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.DATABASE_URL);
+process.env.SESSION_SECRET=randomBytes(32).toString('hex');
+const api=sessions as typeof sessions & {revokePlayerSessions?:(id:string)=>Promise<void>};
+try{
+ assert.equal(typeof api.revokePlayerSessions,'function','A6: account sessions must support persistent revocation');
+ const player=await db.player.create({data:{name:'Account fixture'}});
+ const req=(cookie:string)=>new NextRequest('https://fixture.example/api/profile',{headers:{cookie:`${sessions.SESSION_COOKIE}=${cookie}`}});
+ const legacy=sessions.signSession(player.id);
+ assert.equal(await sessions.sessionPlayer(req(legacy)),player.id);
+ const response=NextResponse.json({ok:true});await sessions.setSessionCookie(response,player.id);
+ const cookie=response.cookies.get(sessions.SESSION_COOKIE)!.value;
+ assert(cookie.startsWith('v1.'));
+ assert.equal(await sessions.sessionPlayer(req(cookie)),player.id);
+ assert.equal(await sessions.sessionPlayer(req(cookie+'tampered')),null);
+ await api.revokePlayerSessions!(player.id);
+ assert.equal(await sessions.sessionPlayer(req(cookie)),null);
+ assert.equal(await sessions.sessionPlayer(req(legacy)),null);
+ const fresh=NextResponse.json({ok:true});await sessions.setSessionCookie(fresh,player.id);
+ assert.equal(await sessions.sessionPlayer(req(fresh.cookies.get(sessions.SESSION_COOKIE)!.value)),player.id);
+ const freshCookie=fresh.cookies.get(sessions.SESSION_COOKIE)!.value;
+ const other=NextResponse.json({ok:true});await sessions.setSessionCookie(other,player.id);
+ const otherCookie=other.cookies.get(sessions.SESSION_COOKIE)!.value;
+ const signedOut=await logout(new NextRequest('https://fixture.example/api/auth/logout',{method:'POST',headers:{cookie:`${sessions.SESSION_COOKIE}=${freshCookie}`,'content-type':'application/json'},body:JSON.stringify({all:false})}));
+ assert.equal(signedOut.cookies.get(sessions.SESSION_COOKIE)?.value,'');
+ assert.equal(await sessions.sessionPlayer(req(freshCookie)),null);
+ assert.equal(await sessions.sessionPlayer(req(otherCookie)),player.id,'current-device logout must retain other sessions');
+ const allResponse=await logout(new NextRequest('https://fixture.example/api/auth/logout',{method:'POST',headers:{cookie:`${sessions.SESSION_COOKIE}=${otherCookie}`,'content-type':'application/json'},body:JSON.stringify({all:true})}));
+ assert.equal(allResponse.status,200);assert.equal(await sessions.sessionPlayer(req(otherCookie)),null);
+ assert.equal((await db.player.findUniqueOrThrow({where:{id:player.id}})).id,player.id);
+ console.log('PASS — opaque session, tamper rejection, persistent logout-all, legacy revocation and fresh sign-in preserve player ID');
+}finally{await db.$disconnect();}

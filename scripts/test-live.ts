@@ -35,7 +35,8 @@ assert.equal(applyLiveCommand(table, other, { type: "act", action: { type: "call
 assert.equal(game.board.length, 5);
 assert.equal(game.phase, "showdown");
 const result = publicLiveTable(table, guest.id, "TEST", 1);
-assert(verifyDeck(result.game!.deckSeed!, result.game!.deckCommit).valid);
+assert.equal(result.game!.deckSeed, null, "live full-shuffle seeds remain private after settlement");
+assert(verifyDeck(game.deckSeed, game.deckCommit).valid, "trusted internal replay still matches the commitment");
 assert.equal(advanceLiveTable(table, table.nextAt! - 1), false);
 assert.equal(advanceLiveTable(table, table.nextAt!), true);
 // A split pot starts the next hand immediately, so its posted blinds still count.
