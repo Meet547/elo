@@ -42,6 +42,7 @@ model Player {
 model Session {
   id           String   @id @default(cuid())
   playerId     String
+  privateRoomId String?
   matchId      String?
   match        Match?   @relation(fields: [matchId], references: [id])
   mode         GameMode @default(LEGACY)
@@ -65,11 +66,13 @@ model Session {
   createdAt    DateTime @default(now())
 
   @@unique([matchId, playerId])
+  @@unique([privateRoomId, playerId])
   @@index([playerId, createdAt])
 }
 
 model LiveRoom {
   code      String   @id
+  instanceId String @unique @default(uuid())
   events RoomEvent[]
   nextDeadlineAt DateTime?
   revision  Int      @default(0)
@@ -232,6 +235,7 @@ model RoomEvent {
 
 model FairHand {
   handId String @id
+  roomInstanceId String?
   roomCode String
   handNo Int
   publicData Json
@@ -239,6 +243,7 @@ model FairHand {
   completedAt DateTime?
   createdAt DateTime @default(now())
   @@index([roomCode, handNo])
+  @@index([roomInstanceId, handNo])
 }
 
 model RatingDaily {

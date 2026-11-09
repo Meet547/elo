@@ -67,7 +67,8 @@ export function Shell({ children }: { children: React.ReactNode }) {
   const ranked = pathname === "/ranked";
   const live = pathname === "/live";
   const home = pathname === "/";
-  const isTable = pathname === "/" && view === "table";
+  const isTable = pathname === "/table" && view === "table";
+  const profilePage = pathname === "/profile";
 
   const rating = profile?.rating ?? 0;
   const tier = tierOf(rating);
@@ -76,7 +77,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
   const nav = (target: "lobby" | "profile") => () => {
     (target === "profile" ? openProfile : backToLobby)();
-    if (pathname !== "/") router.push("/");
+    router.push(target === "profile" ? "/profile" : "/");
   };
   const streakLabel =
     !profile || profile.streak === 0 ? "—" : profile.streak > 0 ? `W${profile.streak}` : `L${-profile.streak}`;
@@ -88,13 +89,13 @@ export function Shell({ children }: { children: React.ReactNode }) {
         <div>
           <Wordmark className="text-3xl" />
           <div className="mt-1.5 pl-[1px] font-mono text-[9px] uppercase text-ink-faint">
-            rated poker · season one
+            rated poker · play money
           </div>
         </div>
 
         <nav className="mt-8 space-y-0.5">
-          <NavItem idx="01" label="Lobby" active={home && view === "lobby"} onClick={nav("lobby")} />
-          <NavItem idx="02" label="Profile" active={home && view === "profile"} onClick={nav("profile")} />
+          <NavItem idx="01" label="Lobby" active={home} onClick={nav("lobby")} />
+          <NavItem idx="02" label="Profile" active={profilePage} onClick={nav("profile")} />
           <Link href="/ranked" aria-current={ranked ? "page" : undefined} className={cn("flex min-h-9 items-center gap-3 rounded-lg px-2.5 py-2 text-[13px] transition-colors", ranked ? "bg-canvas text-ink" : "text-ink-soft hover:bg-canvas")}>
             <span className={cn("font-mono text-[9px]", ranked ? "text-carmine" : "text-ink-faint")}>03</span> Ranked
             <span className={cn("ml-auto h-1.5 w-1.5 rounded-full", ranked ? "bg-carmine" : "bg-transparent")} />
@@ -103,12 +104,14 @@ export function Shell({ children }: { children: React.ReactNode }) {
             <span className={cn("font-mono text-[9px]", live ? "text-carmine" : "text-ink-faint")}>04</span> Live rooms
             <span className={cn("ml-auto h-1.5 w-1.5 rounded-full", live ? "bg-carmine" : "bg-transparent")} />
           </Link>
+          <Link href="/leaderboard" aria-current={pathname === "/leaderboard" ? "page" : undefined} className="flex min-h-9 items-center rounded-lg px-2.5 text-[13px] text-ink-soft hover:bg-canvas">Leaderboard</Link>
+          <Link href="/settings" aria-current={pathname === "/settings" ? "page" : undefined} className="flex min-h-9 items-center rounded-lg px-2.5 text-[13px] text-ink-soft hover:bg-canvas">Settings</Link>
         </nav>
 
         {profile ? (
           <>
             <div className="mt-8">
-              <div className="mb-1.5 label">this season</div>
+              <div className="mb-1.5 label">lifetime</div>
               <SeasonRow k="hands" v={profile.hands.toLocaleString("en-US")} />
               <SeasonRow k="firsts" v={profile.cashes.toLocaleString("en-US")} tone={profile.cashes > 0 ? "money" : undefined} />
               <SeasonRow
@@ -148,12 +151,12 @@ export function Shell({ children }: { children: React.ReactNode }) {
 
         <div className="mt-auto space-y-3">
           {profile ? (
-            <button onClick={nav("profile")} className="w-full text-left" aria-label="Open profile">
+            <button onClick={nav("profile")} className="w-full text-left">
               <Plate
                 className="w-full"
                 name={profile.name}
                 sub={meRank ? `${ordinal(meRank)} on the ladder` : "unranked"}
-                active={home && view === "profile"}
+                active={profilePage}
                 right={
                   <div className="text-right">
                     <ScrambleText
@@ -187,7 +190,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 onClick={nav("lobby")}
                 className={cn(
                   "min-h-11 rounded-lg px-1.5 font-mono text-[10px] uppercase transition-colors",
-                  home && view === "lobby" ? "bg-ink text-paper" : "text-ink-soft",
+                  home ? "bg-ink text-paper" : "text-ink-soft",
                 )}
               >
                 lobby
@@ -196,7 +199,7 @@ export function Shell({ children }: { children: React.ReactNode }) {
                 onClick={nav("profile")}
                 className={cn(
                   "min-h-11 rounded-lg px-1.5 font-mono text-[10px] uppercase transition-colors",
-                  home && view === "profile" ? "bg-ink text-paper" : "text-ink-soft",
+                  profilePage ? "bg-ink text-paper" : "text-ink-soft",
                 )}
               >
                 profile
@@ -210,6 +213,10 @@ export function Shell({ children }: { children: React.ReactNode }) {
           </header>
         ) : null}
         <main className="flex min-w-0 flex-1 flex-col">{children}</main>
+        {!isTable && <nav aria-label="Account and leaderboard" className="flex flex-wrap justify-center gap-4 px-3 text-xs lg:hidden">
+          <Link href="/leaderboard" className="elo-link inline-flex min-h-11 items-center">Leaderboard</Link>
+          <Link href="/settings" className="elo-link inline-flex min-h-11 items-center">Settings</Link>
+        </nav>}
         {!isTable && <RoomFooter atLiveLobby={live} />}
       </div>
     </div>

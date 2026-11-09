@@ -4,7 +4,7 @@ import { db, dbEnabled } from "@/lib/db";
 export const dynamic = "force-dynamic";
 const NO_STORE = { "cache-control": "no-store" } as const;
 // Bump when a new application release requires another committed migration.
-const REQUIRED_SCHEMA = '20261108150000_match_moderation';
+const REQUIRED_SCHEMA = '20261108160000_private_history';
 
 /** Readiness includes database reachability and the required committed schema. */
 export async function GET() {

@@ -6,9 +6,9 @@ assert.equal(process.env.ELO_TEST_DATABASE,'1');isolatedDatabaseUrl(process.env.
 try{
  const ready=await GET();assert.equal(ready.status,200);
  assert.equal((await ready.json()).mode,'postgresql','readiness must identify the actual persistence provider');
- await db.$executeRaw`UPDATE "_prisma_migrations" SET rolled_back_at = NOW() WHERE migration_name = '20261108150000_match_moderation'`;
+ await db.$executeRaw`UPDATE "_prisma_migrations" SET rolled_back_at = NOW() WHERE migration_name = '20261108160000_private_history'`;
  assert.equal((await GET()).status,503,'missing required migration must fail readiness');
- await db.$executeRaw`UPDATE "_prisma_migrations" SET rolled_back_at = NULL WHERE migration_name = '20261108150000_match_moderation'`;
+ await db.$executeRaw`UPDATE "_prisma_migrations" SET rolled_back_at = NULL WHERE migration_name = '20261108160000_private_history'`;
  assert.equal((await GET()).status,200);
  console.log('PASS — Postgres readiness requires the committed schema and recovers after metadata restoration');
 }finally{await db.$disconnect();}

@@ -113,6 +113,7 @@ export interface Profile {
 /** One settled session from the ledger — the raw material of the profile. */
 export interface SessionRow {
   id: string;
+  matchId?: string | null;
   match?: { moderation: { action: string } | null } | null;
   mode?: "RANKED" | "LEGACY" | "PRIVATE" | "PRACTICE";
   bestSeenHand?: string | null;

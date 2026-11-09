@@ -6,7 +6,8 @@
 // what you won with, or who took your last chips and in which hand.
 // ---------------------------------------------------------------------------
 
-import { AccountAccess } from "./AccountAccess";
+import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { useFelt, type SessionRow } from "@/store/game";
 import { RatingGraph, type GraphPoint } from "@/components/felt/chart";
 import { RollingNumber, Stamp, TactileButton } from "@/components/felt/kit";
@@ -46,6 +47,7 @@ function Tile({ k, v, note, tone }: { k: string; v: string; note?: string; tone?
 }
 
 export function ProfileView() {
+  const router = useRouter();
   const { profile, sessions, profileStatistics, ratingHistory, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
   const [filter, setFilter] = useState<"all" | "cashes" | "losses">("all");
 
@@ -113,7 +115,7 @@ export function ProfileView() {
       {/* ------------------------------------------------- graph + record */}
       <div className="mt-6 grid grid-cols-1 gap-5 lg:grid-cols-[1fr_292px]">
         <RatingGraph points={points} currentRating={profile.rating} loading={sessionsLoading} onRefresh={fetchSessions}
-          emptyAction={<TactileButton variant="paper" size="sm" onClick={seatTable}>Take a seat — $1,500</TactileButton>} />
+          emptyAction={<TactileButton variant="paper" size="sm" onClick={() => { seatTable(); router.push("/table"); }}>Take a seat — $1,500</TactileButton>} />
 
         <aside className="flex flex-col gap-5">
           <section className="grid grid-cols-2 gap-2">
@@ -248,6 +250,7 @@ export function ProfileView() {
                 </div>
                 <div className="mt-1 truncate pl-11 font-mono text-[10px] text-ink-faint">
                   {sessionLine(s)}
+                  <Link className="elo-link ml-2" href={`/match/${s.matchId ?? s.id}`}>Review record</Link>
                   {s.bestSeenHand && <p>Best seen · {s.bestSeenHand}</p>}
                   {s.bestWinningHand && <p>Best winning · {s.bestWinningHand}</p>}
                 </div>
@@ -257,7 +260,7 @@ export function ProfileView() {
         )}
       </section>
 
-      <AccountAccess />
+      <Link className="elo-link mt-4 inline-block" href="/settings">Account settings</Link>
 
       <p className="mt-4 text-center font-mono text-[9px] uppercase text-ink-faint">
         each ranked match updates both players from their pre-match ratings

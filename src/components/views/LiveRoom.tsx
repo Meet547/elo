@@ -564,7 +564,10 @@ function LiveDetails({ game }: { game: NonNullable<LiveSnapshot["game"]> }) {
         <summary className="cursor-pointer text-sm font-semibold">Deal commitment</summary>
         <p className="mt-2 break-all font-mono text-[10px] text-ink-soft">{game.deckCommit}</p>
         <p className="mt-2 text-xs text-ink-soft">Hidden cards stay private. This commitment alone does not prove a fair shuffle.</p>
-        {game.fairProof && <Link className="elo-link mt-3 inline-block text-xs" href={`/verify/${game.fairProof.handId}`}>Verify disclosed cards</Link>}
+        {game.fairProof && <div className="mt-3 flex flex-wrap gap-3 text-xs">
+          <Link className="elo-link" href={`/verify/${game.fairProof.handId}`}>Verify disclosed cards</Link>
+          <Link className="elo-link" href={`/match/${game.fairProof.handId}`}>Review completed hands</Link>
+        </div>}
       </details>
       <section className="elo-panel p-4">
         <h2 className="font-display text-2xl">Hand log</h2>

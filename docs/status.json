@@ -90,10 +90,15 @@
       "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
     },
     "F8": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS12",
-      "evidence": "backend/src/lib/live-rooms.ts:88; src/store/game.ts:855; current legacy practice settlement is disabled"
+      "evidence": "backend/src/lib/live-rooms.ts:88; src/store/game.ts:855; current legacy practice settlement is disabled",
+      "tests": [
+        "scripts/test-private-history.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "One unrated private result per participant and stable archived record after room expiry. Practice is explicitly local to the current tab."
     },
     "F9": {
       "status": "fixed-on-branch",
@@ -135,10 +140,15 @@
       "commit": "3c9cc0a"
     },
     "F12": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS4/WS12",
-      "evidence": "src/app/page.tsx:48; render.yaml:6; missing deep routes intentional in prototype but fail new route/reload requirement"
+      "evidence": "src/app/page.tsx:48; render.yaml:6; missing deep routes intentional in prototype but fail new route/reload requirement",
+      "tests": [
+        "scripts/lib/browser-product-check.mjs",
+        "scripts/test-incremental-migration.mjs"
+      ],
+      "reason": "Product routes restore location on reload. Terms and privacy display pending owner approval."
     },
     "F13": {
       "status": "fixed-on-branch",

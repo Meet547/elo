@@ -105,3 +105,7 @@ The owner’s history endpoint calculates totals over all recorded rows and retu
 ## D026 — local practice and compensating moderation
 
 Practice uses browser heuristics, with no model service dependency. Ranked review uses bounded pair and timing signals for operators. An administrator’s reason and action are recorded once per match. A settled result’s correction reverses the original delta against the current rating and preserves the original history and later results.
+
+## D027 — routes and private records
+
+Product pages have reloadable URLs. Practice state stays in its browser tab. Completed private rooms record one unrated result per participant using a permanent room instance ID. Participant history projects actions and disclosed cards from the archive. Room codes remain short invitations and may be reused after expiry.

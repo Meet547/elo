@@ -3,13 +3,14 @@ import "server-only";
 import { randomInt } from "node:crypto";
 import type { LiveRoom } from "@prisma/client";
 import { db } from "./db";
-import {type DatabaseClient} from "./unit-of-work";
+import {inTransaction,type DatabaseClient} from "./unit-of-work";
 import { commitRankedRoom } from "./ranked-settlement";
 import {
   advanceLiveTable,
   refreshFairEvidence,
   applyLiveCommand,
   newLiveTable,
+  liveStandings,
   publicLiveTable,
   type LiveCommand,
   type LiveTable,
@@ -49,10 +50,34 @@ export async function createLiveRoom(playerId: string, client:DatabaseClient=db)
 async function commit(row: LiveRoom, table: LiveTable, client:DatabaseClient=db) {
   refreshFairEvidence(table);
   if (table.ranked) return commitRankedRoom(client, row, table);
-  return (await client.liveRoom.updateMany({
-    where: { code: row.code, revision: row.revision },
-    data: { nextDeadlineAt: table.nextAt === null ? null : new Date(table.nextAt), state: JSON.stringify(table), revision: { increment: 1 }, expiresAt: new Date(Date.now() + ROOM_TTL) },
-  })).count > 0;
+  return inTransaction(client, async tx => {
+    const updated = await tx.liveRoom.updateMany({
+      where: { code: row.code, revision: row.revision },
+      data: { nextDeadlineAt: table.nextAt === null ? null : new Date(table.nextAt), state: JSON.stringify(table), revision: { increment: 1 }, expiresAt: new Date(Date.now() + ROOM_TTL) },
+    });
+    if (!updated.count) return false;
+    if (table.status === "finished" && table.game) {
+      const standings = liveStandings(table);
+      const players = await tx.player.findMany({
+        where: { id: { in: standings.map(seat => seat.id) } }, select: { id: true, rating: true },
+      });
+      const ratings = new Map(players.map(player => [player.id, player.rating]));
+      await tx.session.createMany({ data: standings.map(seat => {
+        const rating = ratings.get(seat.id);
+        if (rating === undefined) throw new Error("Missing private-room participant.");
+        return {
+          playerId: seat.id, privateRoomId: row.instanceId, mode: "PRIVATE",
+          hands: table.game!.handNo, seats: standings.length, finalStack: seat.stack, net: seat.net,
+          place: seat.place, ratingBefore: rating, ratingAfter: rating, biggestPot: seat.biggestPot,
+          potsWon: seat.potsWon, bestHand: seat.bestHand,
+          bestSeenHand: seat.bestSeen?.name, bestSeenScore: seat.bestSeen?.score,
+          bestWinningHand: seat.bestWinning?.name, bestWinningScore: seat.bestWinning?.score,
+          exit: "Private table complete",
+        };
+      }) });
+    }
+    return true;
+  });
 }
 
 async function currentRoom(code: string, client:DatabaseClient=db) {

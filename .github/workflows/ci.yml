@@ -66,6 +66,8 @@ jobs:
       - run: npm run test:ranked-events
       - run: npm run test:rating-statistics
       - run: npm run test:match-moderation
+      - run: npm run test:private-history
+      - run: npm run test:incremental-migration
       - run: npm run test:ranked-liveness
       - run: npm run test:realtime
       - run: npm run test:deadline-worker

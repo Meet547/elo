@@ -130,6 +130,10 @@ try {
  assert.deepEqual(await queueFrame(),matched.data);
  await queueReader.cancel();
  console.log('PASS — ranked match assignments reach the waiting player through the production SSE proxy');
+ if(process.argv.includes('--browser')){
+  const {checkBrowserProduct}=await import('./lib/browser-product-check.mjs');
+  await checkBrowserProduct({frontend,host,guest,code:matched.data.code,request});
+ }
  const oldBotRoute=await fetch(`${frontend}/api/bots/decide`,{method:'POST',headers:{Cookie:host.cookie,'content-type':'application/json'},body:'{}'});
  assert.equal(oldBotRoute.status,404);
  const csrf=await request('/api/profile',{method:'POST',headers:{Origin:'https://evil.example'},body:'{}'});assert.equal(csrf.response.status,403);

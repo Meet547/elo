@@ -97,3 +97,10 @@
 - Use local practice bots and remove the Cloud request path and deployment key requirement.
 - Give allowlisted verified administrators a pair review and transactional match void or rating reversal.
 - Show reversals in the owner’s rating timeline and include compensation in daily ladder reconciliation.
+
+## WS12–14 — routes, records and verification
+
+- Add routes for account, leaderboard, practice, match records, sign-in and the pending legal notices.
+- Persist completed private games as unrated history and expose only disclosed hand information to authorized viewers.
+- Exercise browser reconnect, responsive layouts, accessibility and incremental Postgres migrations in the production test harness.
+- Document the service boundaries, user flows, rating periods and rollout and recovery procedures.
