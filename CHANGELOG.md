@@ -79,3 +79,9 @@
 - Activate server/client commit-before-reveal dealing in new private rooms and ranked proposals, with frozen seats, fail-closed preparation deadlines and browser seed pinning/reload recovery. Give preparation a separate 15-second window after ranked confirmation.
 - Persist separate public/private hand evidence atomically; reject root replacement and freeze completed archives. Verify disclosed cards at /verify/[handId] and keep folded cards/seeds private after settlement and room expiry.
 - Check actual engine deal/burn order in trusted audits; extend 10,000-hand proof tests, real two-browser production smoke and protected-room spectator load coverage. Public membership is not an unbiased-shuffle proof.
+
+## WS9 — ranked queue policy and delivery
+
+- Match on mutual RD-based ranges and prefer compatible longer searches. Apply pair cooldowns and a soft shared-network signal.
+- Push committed queue assignments over authenticated SSE and end searches at three minutes.
+- Add a 10,000-entry simulation and Postgres integration coverage for notification, cooldown, expiration and revocation.

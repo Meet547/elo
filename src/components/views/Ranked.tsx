@@ -59,18 +59,35 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
 
   useEffect(() => {
     if (busy || queue?.status !== "searching") return;
-    const controller = new AbortController();
+    let stopped = false;
     let timer: ReturnType<typeof setTimeout>;
-    async function poll() {
-      try {
-        accept(await queueRequest("poll", controller.signal));
-      } catch (cause) {
-        if (!controller.signal.aborted) setError(cause instanceof Error ? cause.message : "Reconnecting to the queue…");
-      }
-      if (!controller.signal.aborted) timer = setTimeout(poll, 1_500);
-    }
-    timer = setTimeout(poll, 1_500);
-    return () => { controller.abort(); clearTimeout(timer); };
+    let stream: EventSource | undefined;
+    let delay = 750;
+    const connect = () => {
+      if (stopped) return;
+      const source = new EventSource("/api/ranked/events");
+      stream = source;
+      source.onmessage = (event) => {
+        if (stopped || stream !== source) return;
+        delay = 750;
+        const next = JSON.parse(event.data) as RankedQueueStatus;
+        accept(next);
+        if (next.status !== "searching") source.close();
+      };
+      source.addEventListener("unavailable", (event) => {
+        source.close();
+        setQueue(null);
+        setError(JSON.parse((event as MessageEvent).data));
+      });
+      source.onerror = () => {
+        source.close();
+        if (stopped || stream !== source) return;
+        timer = setTimeout(connect, delay);
+        delay = Math.min(delay * 2, 10_000);
+      };
+    };
+    connect();
+    return () => { stopped = true; stream?.close(); clearTimeout(timer); };
   }, [accept, busy, queue?.status]);
 
   useEffect(() => {
@@ -121,8 +138,9 @@ function RankedQueue({ autoQueue, rating }: { autoQueue: boolean; rating: number
             </h2>
             <p className="mt-2 max-w-lg text-sm leading-relaxed text-ink-soft">
               {matched ? "Taking you to the table."
-                : searching ? "Keep this screen open. The match starts automatically when another player is found."
-                  : "Elo matches real players by rating. After the result is saved, your next search uses your updated rating."}
+                : searching ? "Keep this screen open for the ready check. Searches end after three minutes."
+                  : queue?.status === "expired" ? "This search reached its time limit. You can start a new search."
+                    : "Elo matches real players by rating. After the result is saved, your next search uses your updated rating."}
             </p>
             {searching && (
               <div className="tnum mt-4 flex flex-wrap items-center gap-x-5 gap-y-2 text-xs text-ink-soft">

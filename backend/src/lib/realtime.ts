@@ -7,6 +7,8 @@ import {publicLiveTable,type LiveTable} from '@/lib/poker/live-table';
 
 export type StreamIdentity={actorId:string;tag:string;legacy:boolean};
 export type RoomObserver={identity:StreamIdentity;update:(row:LiveRoom)=>void;close:()=>void};
+type QueueObserver = { identity: StreamIdentity; changed: () => void; close: () => void };
+
 class NotificationBus {
  private client:Client|null=null;
  private opening:Promise<void>|null=null;
@@ -35,6 +37,7 @@ class NotificationBus {
    try{
     await client.connect();
     await client.query('LISTEN elo_room_events');await client.query('LISTEN elo_auth_events');
+    await client.query('LISTEN elo_queue_events');
     if(this.client!==client||!this.enabled)throw new Error('Listener replaced.');
     this.connected=true;this.resync();
    }catch(error){disconnected();throw error;}
@@ -120,24 +123,32 @@ export class RoomHub {
 }
 class Realtime {
  readonly hubs=new Map<string,RoomHub>();
+ private queueObservers = new Set<QueueObserver>();
  private revokedTags=new Set<string>();
  private revokedActors=new Set<string>();
  private revokedLegacy=new Set<string>();
  private reconciling=false;
  private watchdog:ReturnType<typeof setInterval>|undefined;
- readonly bus=new NotificationBus((channel,payload)=>this.receive(channel,payload),()=>{for(const hub of this.hubs.values())hub.closeAll();},()=>{void this.reconcile();});
+ readonly bus=new NotificationBus((channel,payload)=>this.receive(channel,payload),()=>{for(const hub of this.hubs.values())hub.closeAll();
+  for (const observer of [...this.queueObservers]) observer.close();
+ },()=>{void this.reconcile();});
  revoked(identity:StreamIdentity){return this.revokedTags.has(identity.tag)||this.revokedActors.has(identity.actorId)||(identity.legacy&&this.revokedLegacy.has(identity.actorId));}
  private receive(channel:string,payload:string){
   let message;try{message=JSON.parse(payload);}catch{return;}
   if(channel==='elo_room_events'&&typeof message.code==='string'){
    const hub=this.hubs.get(message.code);
    if(message.deleted&&hub){hub.row=null;hub.table=null;hub.closeAll();}else if(hub)void hub.refresh().catch(()=>{});
+  }else if(channel==='elo_queue_events'){
+   for (const observer of this.queueObservers) {
+    if (observer.identity.actorId === message.actorId) observer.changed();
+   }
   }else if(channel==='elo_auth_events'){
    if(message.type==='session'&&typeof message.tag==='string')this.revokedTags.add(message.tag);
    if(message.type==='actor'&&typeof message.actorId==='string')this.revokedActors.add(message.actorId);
    if(message.type==='legacy-actor'&&typeof message.actorId==='string')this.revokedLegacy.add(message.actorId);
    for(const set of [this.revokedTags,this.revokedActors,this.revokedLegacy])while(set.size>10000)set.delete(set.values().next().value!);
    for(const hub of this.hubs.values())for(const observer of [...hub.observers])if(this.revoked(observer.identity))observer.close();
+   for (const observer of [...this.queueObservers]) if (this.revoked(observer.identity)) observer.close();
   }
  }
  async get(code:string){
@@ -165,9 +176,29 @@ class Realtime {
  remove(hub:RoomHub){
   if(hub.observers.size||this.hubs.get(hub.code)!==hub)return;
   hub.dispose();this.hubs.delete(hub.code);
-  if(!this.hubs.size){clearInterval(this.watchdog);this.watchdog=undefined;void this.bus.stop();this.revokedTags.clear();this.revokedActors.clear();this.revokedLegacy.clear();}
+  this.stopIfIdle();
+ }
+ watchQueue(observer: QueueObserver) {
+  this.queueObservers.add(observer);
+  return {
+   ready: this.bus.ready(),
+   unsubscribe: () => {
+    this.queueObservers.delete(observer);
+    this.stopIfIdle();
+   },
+  };
+ }
+ private stopIfIdle() {
+  if (this.hubs.size || this.queueObservers.size) return;
+  clearInterval(this.watchdog);
+  this.watchdog = undefined;
+  void this.bus.stop();
+  this.revokedTags.clear();
+  this.revokedActors.clear();
+  this.revokedLegacy.clear();
  }
  async shutdown(){
+  for (const observer of [...this.queueObservers]) observer.close();
   for(const hub of this.hubs.values())hub.dispose();this.hubs.clear();clearInterval(this.watchdog);this.watchdog=undefined;await this.bus.stop();
  }
 }

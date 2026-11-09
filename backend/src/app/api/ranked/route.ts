@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { dbEnabled } from "@/lib/db";
-import { updateRankedQueue, RankedEligibilityError } from "@/lib/ranked-queue";
-import { rateLimit } from "@/lib/rate-limit";
+import { updateRankedQueue, RankedEligibilityError, rankedNetworkTag } from "@/lib/ranked-queue";
+import { clientKey, rateLimit } from "@/lib/rate-limit";
 import {runGameCommand,commandHttp,commandLimited} from "../../../lib/command-receipts";
 import { sessionPlayer } from "@/lib/session";
 
@@ -18,7 +18,7 @@ export async function POST(req: NextRequest) {
     const limit=await rateLimit(req,'ranked',60,60_000,player,tx);
     if(!limit.ok)return commandLimited(limit.retryAfter);
     try{
-      const result=await updateRankedQueue(player,command,tx);
+      const result=await updateRankedQueue(player,command,tx,command==='join'?rankedNetworkTag(clientKey(req)):undefined);
       return result?{status:200,body:result}:{status:401,body:{error:'Claim an Elo profile first.'}};
     }catch(error){if(error instanceof RankedEligibilityError)return {status:403,body:{error:error.message}};throw error;}
   },command==='poll'?60_000:7*86400_000));}

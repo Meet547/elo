@@ -62,6 +62,8 @@ jobs:
       - run: npm run test:session-resume
       - run: npm run test:leaderboard
       - run: npm run test:ranked-ready
+      - run: npm run test:ranked-policy
+      - run: npm run test:ranked-events
       - run: npm run test:ranked-liveness
       - run: npm run test:realtime
       - run: npm run test:deadline-worker

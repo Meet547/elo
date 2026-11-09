@@ -50,7 +50,9 @@
     "test:client-seed": "bun scripts/test-client-seed.ts",
     "test:live-fairness": "bun scripts/test-live-fairness.ts",
     "test:fair-archive": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-fair-archive.ts",
-    "smoke:browser": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs --browser"
+    "smoke:browser": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs --browser",
+    "test:ranked-policy": "bun scripts/test-ranked-policy.ts",
+    "test:ranked-events": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-events.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

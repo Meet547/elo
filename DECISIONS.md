@@ -93,3 +93,7 @@ A tournament can legitimately exceed 200 hands. The stress test keeps a bounded 
 Both ranked confirmations still have 15 seconds; after confirmation, the frozen client seed exchange receives its own 15 seconds so a timely last confirmation can complete. Private preparation uses the same bounded exchange. Timeout aborts without a substitute seed or rated result. Browser seeds are pinned to the original server commitment and persisted per owner/room. New rooms use the protocol; old room states remain explicit legacy commitments without fabricated participants.
 
 The hand archive transactionally stores separate public membership evidence and private replay input, rejects root replacement and freezes completed evidence. Public verification survives room expiry and reveals only public board/showdown cards. Trusted audit checks seed combination, root and actual deal/burn order. Public full-shuffle verification is unavailable under folded-card privacy, and the page explicitly limits the claim to membership. Integrity archives remain sensitive and retained under the existing closure policy pending a final legal retention policy.
+
+## D024 — bounded searches and queue delivery
+
+Ranked selection uses both players’ rating deviation, wait and pool. A three-minute cap makes the end of a search explicit. Recent pair cooldowns reduce repetitive matches, while a shared network remains a soft preference. The queue uses the existing Postgres listener for committed assignment notifications and rechecks its current state on reconnect.

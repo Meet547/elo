@@ -13,9 +13,9 @@ export async function transitionMatch(tx: Prisma.TransactionClient, id: string, 
 }
 
 type Participant = { id: string; rating: number; rd: number; volatility: number; rated: number };
-export async function createProposedRankedMatch(tx: Prisma.TransactionClient, players: Participant[], now: Date) {
+export async function createProposedRankedMatch(tx: Prisma.TransactionClient, players: Participant[], now: Date, sharedNetwork = false) {
   if (players.length !== 2 || players[0].id === players[1].id) throw new Error('A ranked match requires two distinct players.');
-  const match = await tx.match.create({ data: { readyDeadlineAt: new Date(now.getTime() + RANKED_READY_MS), participants: { create: players.map((player, seat) => ({
+  const match = await tx.match.create({ data: { sharedNetwork, readyDeadlineAt: new Date(now.getTime() + RANKED_READY_MS), participants: { create: players.map((player, seat) => ({
     playerId: player.id, seat, ratingSnapshot: { rating: player.rating, rd: player.rd, volatility: player.volatility, rated: player.rated },
   })) } } });
   if (!await transitionMatch(tx, match.id, 'QUEUED', 'PROPOSED')) throw new Error('Proposal conflict.');

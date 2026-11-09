@@ -82,6 +82,8 @@ model LiveRoom {
 
 model RankedSeat {
   pool String @default("PLACEMENT")
+  rd Float @default(350)
+  networkTag String?
   playerId String   @id
   rating   Int
   joinedAt DateTime
@@ -113,6 +115,7 @@ enum MatchState {
 model Match {
   id           String             @id @default(cuid())
   state        MatchState         @default(QUEUED)
+  sharedNetwork Boolean @default(false)
   handNumber   Int                @default(0)
   version      Int                @default(0)
   createdAt    DateTime           @default(now())
