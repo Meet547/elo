@@ -43,7 +43,7 @@ A staging rollout needs a current approved export, empty target, preserved secre
 
 Verify returning profiles across sleeping-host errors and backend restart; two-browser room actions and private-card boundaries; exactly-once ranked settlement and replay rejection; Google linking preserving the old player ID; cross-device restoration; individual logout and logout-all; migration readiness and backup restore. Do not treat the successful isolated fixtures as a live Google/Neon/Render acceptance run.
 
-Google/Neon/email/Sentry accounts and staging are not yet configured. Optional email magic links, underage registration/consent launch surfaces and other remaining workstreams must be finished or explicitly deferred before a broader release.
+The owner needs to configure Google OAuth and managed PostgreSQL for staging. Email, hosted monitoring and approved legal notices are tracked as deferred release items in [the hardening report](HARDENING_REPORT.md).
 
 References: [Render Blueprint fields](https://render.com/docs/blueprint-spec), [Render health checks](https://render.com/docs/health-checks), [Google OpenID Connect](https://developers.google.com/identity/openid-connect/openid-connect).
 

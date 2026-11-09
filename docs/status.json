@@ -27,11 +27,11 @@
       "commit": "e98ff7e"
     },
     "F3": {
-      "status": "partial",
-      "owner": "Codex; owner for provider/export/staging access",
+      "status": "verified-locally-rollout-deferred",
+      "owner": "Deployment owner",
       "workstream": "WS4",
       "evidence": "backend/src/lib/db.ts:5; prisma/schema.prisma:6; live free-host configuration from review; persistent export still required",
-      "reason": "Postgres migration, read-only local history import and fresh backup restore verified; Neon setup, current live export, any legacy ranked mapping and hosted cutover remain gated",
+      "reason": "Local copy and restore preserved 47 players, 235 history rows and one room. Current production export, managed Postgres credentials and staging are required for live migration.",
       "tests": [
         "scripts/test-legacy-import.mjs",
         "scripts/test-harness-isolation.mjs",
@@ -49,7 +49,8 @@
         "scripts/test-engine-rules.ts",
         "scripts/test-engine-invariants.ts"
       ],
-      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
     },
     "F5": {
       "status": "fixed-on-branch",
@@ -77,7 +78,8 @@
         "scripts/test-game-command.ts",
         "scripts/smoke-production.mjs"
       ],
-      "reason": "Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation"
+      "reason": "Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation",
+      "commit": "c15a693"
     },
     "F7": {
       "status": "fixed-on-branch",
@@ -87,7 +89,8 @@
       "tests": [
         "scripts/test-rating-statistics.ts"
       ],
-      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels.",
+      "commit": "036dcb0"
     },
     "F8": {
       "status": "fixed-on-branch",
@@ -98,7 +101,8 @@
         "scripts/test-private-history.ts",
         "scripts/smoke-production.mjs"
       ],
-      "reason": "One unrated private result per participant and stable archived record after room expiry. Practice is explicitly local to the current tab."
+      "reason": "One unrated private result per participant and stable archived record after room expiry. Practice is explicitly local to the current tab.",
+      "commit": "2e9c4c0"
     },
     "F9": {
       "status": "fixed-on-branch",
@@ -115,7 +119,8 @@
         "scripts/test-live-fairness.ts",
         "scripts/test-fair-archive.ts",
         "scripts/smoke-production.mjs"
-      ]
+      ],
+      "commit": "bc6b84b"
     },
     "F10": {
       "status": "fixed-on-branch",
@@ -148,7 +153,8 @@
         "scripts/lib/browser-product-check.mjs",
         "scripts/test-incremental-migration.mjs"
       ],
-      "reason": "Product routes restore location on reload. Terms and privacy display pending owner approval."
+      "reason": "Product routes restore location on reload. Terms and privacy display pending owner approval.",
+      "commit": "2e9c4c0"
     },
     "F13": {
       "status": "fixed-on-branch",
@@ -156,10 +162,12 @@
       "workstream": "WS5/WS10",
       "evidence": "src/lib/poker/live-table.ts:95; src/store/game.ts:743; assignment only when empty, no score comparison",
       "tests": [
-        "scripts/test-rating-statistics.ts"
+        "scripts/test-rating-statistics.ts",
+        "scripts/test-engine-rules.ts"
       ],
       "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
-      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels.",
+      "commit": "036dcb0"
     },
     "A1": {
       "status": "fixed-on-branch",
@@ -170,7 +178,8 @@
         "scripts/test-production.ts",
         "scripts/smoke-production.mjs"
       ],
-      "reason": "Practice uses the approved local heuristic. The unauthoritative Cloud model route and spend surface were removed."
+      "reason": "Practice uses the approved local heuristic. The unauthoritative Cloud model route and spend surface were removed.",
+      "commit": "beaae9f"
     },
     "A2": {
       "status": "fixed-on-branch",
@@ -181,7 +190,8 @@
         "scripts/test-engine-rules.ts",
         "scripts/test-engine-invariants.ts"
       ],
-      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
     },
     "A3": {
       "status": "fixed-on-branch",
@@ -192,7 +202,8 @@
         "scripts/test-engine-rules.ts",
         "scripts/test-engine-invariants.ts"
       ],
-      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips"
+      "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
+      "commit": "7c8a78b"
     },
     "A4": {
       "status": "fixed-on-branch",
@@ -216,11 +227,12 @@
         "scripts/test-match-moderation.ts",
         "scripts/test-profile-names.ts"
       ],
-      "reason": "Verified admin review, atomic void and compensating rating reversal with audit, and reserved/unique table names."
+      "reason": "Verified admin review, atomic void and compensating rating reversal with audit, and reserved/unique table names.",
+      "commit": "beaae9f"
     },
     "A6": {
-      "status": "partial",
-      "owner": "Codex",
+      "status": "implemented-provider-acceptance-deferred",
+      "owner": "Deployment owner",
       "workstream": "WS3/WS12",
       "evidence": "backend/src/lib/session.ts:20,69; route inventory has no logout/revoke/delete/recovery; clear-cookie helper is not a workflow",
       "tests": [
@@ -228,7 +240,8 @@
         "scripts/test-google-auth.ts",
         "scripts/test-account-management.ts"
       ],
-      "reason": "Google recovery, revocable sessions, owner export and explicit profile closure implemented; live provider setup and full retention/erasure policy remain pending"
+      "reason": "Google recovery, logout/revocation, owner export and profile closure are implemented and tested. Live provider credentials and owner-approved retention policy remain pending.",
+      "commit": "a3bb2f4"
     },
     "A7": {
       "status": "fixed-on-branch",
@@ -239,14 +252,46 @@
       "tests": [
         "scripts/test-engine.ts",
         "scripts/test-engine-invariants.ts"
-      ]
+      ],
+      "commit": "e25f469"
     }
   },
   "externalGates": [
-    "Google/Neon/email setup",
-    "current approved live export",
-    "actual staging access",
-    "legal/parental-consent launch approval",
-    "free-host continuous-worker limitation"
+    {
+      "owner": "Deployment owner",
+      "gate": "Google OAuth, managed Postgres and isolated staging credentials",
+      "status": "deferred",
+      "reason": "Provider projects and deploy credentials are not configured for this branch."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Production migration, main merge and cutover",
+      "status": "deferred",
+      "reason": "Require a current authorized live export, accepted staging rehearsal and a rollout window. Main deploys the production application."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Email magic links and hosted error monitoring",
+      "status": "deferred",
+      "reason": "Email and monitoring provider setup is unavailable. Google recovery code and structured logs are available."
+    },
+    {
+      "owner": "Product owner",
+      "gate": "Legal notices, minor consent and final retention policy",
+      "status": "deferred",
+      "reason": "The owner deferred this launch work. The site shows pending notices."
+    },
+    {
+      "owner": "Deployment owner",
+      "gate": "Continuous deadline processing",
+      "status": "deferred",
+      "reason": "The approved free Render service can sleep. The worker catches up on wake."
+    },
+    {
+      "owner": "Product owner",
+      "gate": "Full manual accessibility review",
+      "status": "deferred",
+      "reason": "Automated axe and keyboard checks cover named browser states. Screen-reader usability needs a manual pass."
+    }
   ]
 }

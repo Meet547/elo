@@ -29,7 +29,7 @@ through the server-side bridge to Render.
 
 ## Deploy
 
-This hardening branch is not deployed and still has open workstreams in [docs/status.json](docs/status.json). Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for staging preparation. Configure Render first, then configure
+The draft branch is ready for isolated staging review. See the [verification report](docs/HARDENING_REPORT.md) and its release gates. Follow [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md) for staging preparation. Configure Render first, then configure
 Vercel with its HTTPS origin and matching proxy secret. Hosts and paid services are not provisioned by a Git push.
 
 ## Local development
@@ -73,10 +73,9 @@ npm run test:legacy-import
 npm run smoke:production
 ```
 
-The smoke test uses a temporary database and two local production servers; it
-never touches your development database or calls Ollama Cloud.
+The smoke test uses an isolated Postgres database and two local production servers.
 
-Existing SQLite history is preserved through the guarded [migration rehearsal](docs/MIGRATION_REHEARSAL.md), not by applying Postgres migrations to SQLite. Google configuration and live acceptance are described in [AUTH_SETUP.md](docs/AUTH_SETUP.md). Provider accounts, live export, staging/cutover and the remaining workstreams are still pending.
+Existing SQLite history is preserved through the guarded [migration rehearsal](docs/MIGRATION_REHEARSAL.md), not by applying Postgres migrations to SQLite. Google configuration and live acceptance are described in [AUTH_SETUP.md](docs/AUTH_SETUP.md). Provider setup, the current live export and production cutover remain release gates.
 
 Ranked requires a verified provider and claimed unique name. Both opponents confirm a 15-second ready check before any deal. Three consecutive missed decisions or 60 seconds offline forfeits; both absent voids with unchanged ratings. Countdown display adjusts to server time.
 
