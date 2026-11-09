@@ -2,6 +2,7 @@ import 'server-only';
 import {createHash,randomBytes} from 'node:crypto';
 import {OAuth2Client} from 'google-auth-library';
 import {db} from './db';
+import type {DatabaseClient} from './unit-of-work';
 import {displayName} from './display-name';
 
 export const oauthCookie='elo_oauth_browser';
@@ -60,8 +61,8 @@ export async function linkGoogleIdentity(identity:{subject:string;email:string},
     return player.id;
   },{isolationLevel:'Serializable'});
 }
-export async function accountIdentity(playerId:string) {
-  const identities=await db.externalIdentity.findMany({where:{playerId},select:{provider:true,email:true}});
+export async function accountIdentity(playerId:string, client:DatabaseClient=db) {
+  const identities=await client.externalIdentity.findMany({where:{playerId},select:{provider:true,email:true}});
   const admins=(process.env.ADMIN_EMAILS??'').split(',').map(value=>value.trim().toLowerCase()).filter(Boolean);
   return {verified:identities.length>0,administrator:identities.some(identity=>admins.includes(identity.email.toLowerCase())),providers:identities.map(identity=>identity.provider)};
 }

@@ -152,10 +152,15 @@
       "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
     },
     "A1": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS11",
-      "evidence": "backend/src/app/api/bots/decide/route.ts:11; src/lib/poker/bot-request.ts:10; schema validation is not authoritative game-state verification"
+      "evidence": "backend/src/app/api/bots/decide/route.ts:11; src/lib/poker/bot-request.ts:10; schema validation is not authoritative game-state verification",
+      "tests": [
+        "scripts/test-production.ts",
+        "scripts/smoke-production.mjs"
+      ],
+      "reason": "Practice uses the approved local heuristic. The unauthoritative Cloud model route and spend surface were removed."
     },
     "A2": {
       "status": "fixed-on-branch",
@@ -193,14 +198,15 @@
       "commit": "a3bb2f4"
     },
     "A5": {
-      "status": "partial",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS3/WS11/WS12",
       "evidence": "src/app and backend/src/app inventories; no admin auth/void/reversal/moderation API; Player schema has no role",
       "tests": [
-        "scripts/test-google-auth.ts"
+        "scripts/test-match-moderation.ts",
+        "scripts/test-profile-names.ts"
       ],
-      "reason": "Verified provider admin allowlist implemented; admin operations and moderation remain pending"
+      "reason": "Verified admin review, atomic void and compensating rating reversal with audit, and reserved/unique table names."
     },
     "A6": {
       "status": "partial",

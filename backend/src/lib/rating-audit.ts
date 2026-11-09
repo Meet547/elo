@@ -21,7 +21,9 @@ export async function captureRatingDay(now = Date.now()) {
         COALESCE(SUM("rating"), 0)::bigint AS "accountingTotal",
         (SELECT COALESCE(SUM(session."ratingAfter" - session."ratingBefore"), 0)::bigint
          FROM "Session" AS session JOIN "Player" AS player ON player."id" = session."playerId"
-         WHERE NOT player."isRival" AND session."mode" IN ('RANKED', 'LEGACY')) AS "ledgerDelta"
+         WHERE NOT player."isRival" AND session."mode" IN ('RANKED', 'LEGACY'))
+        + (SELECT COALESCE(SUM(adjustment."delta"), 0)::bigint FROM "RatingAdjustment" AS adjustment
+           JOIN "Player" AS player ON player."id" = adjustment."playerId" WHERE NOT player."isRival") AS "ledgerDelta"
       FROM "Player" WHERE NOT "isRival"
     `;
     const unexplained = previous

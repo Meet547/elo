@@ -17,6 +17,7 @@ import { useMemo, useState } from "react";
 const usd = (n: number) => `$${Math.abs(n).toLocaleString("en-US")}`;
 
 function sessionLine(s: SessionRow): string {
+  if (s.match?.moderation?.action === "REVERSE") return "Result reversed by an administrator";
   if (s.place === 0 && s.mode === "RANKED") return "Ranked draw · 10 hands";
   if (s.exit) return s.exit;
   if (s.place === 1) return "took the whole table down";
@@ -45,19 +46,18 @@ function Tile({ k, v, note, tone }: { k: string; v: string; note?: string; tone?
 }
 
 export function ProfileView() {
-  const { profile, sessions, profileStatistics, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
+  const { profile, sessions, profileStatistics, ratingHistory, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
   const [filter, setFilter] = useState<"all" | "cashes" | "losses">("all");
 
   const meRank = profile?.rank ?? ladder.find((p) => p.isMe)?.rank;
 
-  const chrono = useMemo(() => sessions.filter(session => !session.mode || session.mode === "RANKED" || session.mode === "LEGACY").reverse(), [sessions]);
   const points: GraphPoint[] = useMemo(() => {
-    if (chrono.length === 0) return [];
+    if (!ratingHistory.length) return [];
     return [
-      { value: chrono[0].ratingBefore, at: chrono[0].createdAt, label: "first seat" },
-      ...chrono.map((s, i) => ({ value: s.ratingAfter, at: s.createdAt, label: `session ${i + 1}` })),
+      { value: ratingHistory[0].before, at: ratingHistory[0].at, label: "window start" },
+      ...ratingHistory.map(event => ({ value: event.after, at: event.at, label: event.label })),
     ];
-  }, [chrono]);
+  }, [ratingHistory]);
 
   const stats = profileStatistics;
   const finishCounts = stats?.finishes ?? [];

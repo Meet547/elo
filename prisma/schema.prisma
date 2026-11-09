@@ -128,6 +128,7 @@ model Match {
   room         LiveRoom?
   participants MatchParticipant[]
   settlement   MatchSettlement?
+  moderation   MatchModeration?
   history      Session[]
   transitions  MatchTransition[]
 
@@ -248,4 +249,25 @@ model RatingDaily {
   accountingTotal BigInt
   ledgerDelta   BigInt
   unexplained   BigInt?
+}
+
+model MatchModeration {
+  matchId     String @id
+  match       Match @relation(fields: [matchId], references: [id])
+  actorId     String
+  action      String
+  reason      String
+  createdAt   DateTime @default(now())
+  adjustments RatingAdjustment[]
+}
+
+model RatingAdjustment {
+  matchId     String
+  moderation  MatchModeration @relation(fields: [matchId], references: [matchId])
+  playerId    String
+  before      Int
+  after       Int
+  delta       Int
+  @@id([matchId, playerId])
+  @@index([playerId])
 }

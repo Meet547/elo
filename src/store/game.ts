@@ -9,7 +9,6 @@
 import { create } from "zustand";
 import { resumeProfile } from "@/lib/session-resume";
 import { HUMAN_TURN_MS, BOT_TURN_MS } from "@/lib/poker/turn-timing";
-import { requestBotDecision } from "@/lib/poker/bot-request";
 import type { HandValue } from "@/lib/poker/evaluator";
 import { shortHandLabel } from "@/lib/poker/hand-label";
 import {
@@ -24,7 +23,7 @@ import {
   newSession,
   startHand,
 } from "@/lib/poker/engine";
-import { ROSTER, botView, type RosterBot } from "@/lib/poker/ai";
+import { ROSTER, botDecide, botThinkTime, botView, type RosterBot } from "@/lib/poker/ai";
 import { buildTableOffer, type TableOffer } from "@/lib/matchmaking";
 import {
   buildLocalLadder,
@@ -114,6 +113,7 @@ export interface Profile {
 /** One settled session from the ledger — the raw material of the profile. */
 export interface SessionRow {
   id: string;
+  match?: { moderation: { action: string } | null } | null;
   mode?: "RANKED" | "LEGACY" | "PRIVATE" | "PRACTICE";
   bestSeenHand?: string | null;
   bestWinningHand?: string | null;
@@ -215,6 +215,7 @@ interface FeltState {
   wantsLeave: boolean;
 
   sessions: SessionRow[];
+  ratingHistory: import("@/lib/profile-statistics").RatingHistoryEvent[];
   profileStatistics: import("@/lib/profile-statistics").ProfileStatistics | null;
   sessionsLoading: boolean;
 }
@@ -321,6 +322,7 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
 
   sessions: [],
   profileStatistics: null,
+  ratingHistory: [],
   sessionsLoading: false,
 
   // ------------------------------------------------------------------ boot
@@ -568,8 +570,8 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
         fetch("/api/profile", { cache: "no-store" }),
       ]);
       if (!history.ok || !identity.ok) throw new Error("Could not refresh rating history.");
-      const [{ sessions, statistics, ownerId }, { player }] = await Promise.all([history.json(), identity.json()]);
-      if (get().profile?.id === player.id && ownerId === player.id) set({ sessions, profileStatistics: statistics, profile: player });
+      const [{ sessions, statistics, ratingHistory, ownerId }, { player }] = await Promise.all([history.json(), identity.json()]);
+      if (get().profile?.id === player.id && ownerId === player.id) set({ sessions, profileStatistics: statistics, ratingHistory, profile: player });
     } finally {
       set({ sessionsLoading: false });
     }
@@ -734,21 +736,17 @@ function tick() {
     // the view is frozen now — the bot decides only from what it can see at
     // the moment the clock starts, never from anything that happens after
     const view = botView(s, s.toAct);
-    const think = 0;
+    const think = Math.min(BOT_TURN_MS, botThinkTime(view));
     useFelt.setState({ turn: { seat: seat.idx, duration: BOT_TURN_MS, start: Date.now() } });
     const actor = s.toAct;
     const hand = s.handNo;
     schedule(() => {
-      void (async () => {
-        const action = await requestBotDecision(view);
-        const g = useFelt.getState().game;
-        // Responses from a hand/table that was left must never act on a new one.
-        if (g !== s || g.phase !== "betting" || g.handNo !== hand || g.toAct !== actor) return;
-        applyAndSound(g, actor, action);
-        useFelt.setState({ turn: null });
-        bump();
-        tick();
-      })();
+      const game = useFelt.getState().game;
+      if (game !== s || game.phase !== "betting" || game.handNo !== hand || game.toAct !== actor) return;
+      applyAndSound(game, actor, botDecide(view));
+      useFelt.setState({ turn: null });
+      bump();
+      tick();
     }, think);
     return;
   }

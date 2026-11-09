@@ -19,16 +19,20 @@ export async function GET(req: NextRequest) {
   const playerId = await sessionPlayer(req);
   if (!playerId) return NextResponse.json({ error: "no session" }, { status: 401, headers: NO_STORE });
 
-  const [sessions, groups] = await db.$transaction(async tx => {
-    const rows = await tx.session.findMany({ where: { playerId }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 60 });
+  const [sessions, groups, adjustments] = await db.$transaction(async tx => {
+    const rows = await tx.session.findMany({ where: { playerId }, include: { match: { select: { moderation: { select: { action: true } } } } }, orderBy: [{ createdAt: "desc" }, { id: "desc" }], take: 60 });
     const totals = await tx.session.groupBy({
-      by: ["place"], orderBy: { place: "asc" }, where: { playerId },
+      by: ["place"], orderBy: { place: "asc" }, where: { playerId, OR: [{ matchId: null }, { match: { moderation: null } }] },
       _count: { _all: true },
       _sum: { hands: true, potsWon: true, net: true },
       _max: { biggestPot: true, net: true },
       _min: { net: true },
     });
-    return [rows, totals] as const;
+    const corrections = await tx.ratingAdjustment.findMany({
+      where: { playerId }, orderBy: [{ moderation: { createdAt: "desc" } }, { matchId: "desc" }], take: 60,
+      select: { matchId: true, before: true, after: true, moderation: { select: { createdAt: true } } },
+    });
+    return [rows, totals, corrections] as const;
   }, { isolationLevel: "RepeatableRead" });
 
   const statistics = {
@@ -42,5 +46,13 @@ export async function GET(req: NextRequest) {
     worstNet: groups.length ? Math.min(...groups.map(group => group._min.net!)) : null,
     finishes: groups.map(group => ({ place: group.place, count: group._count._all })).sort((a, b) => a.place - b.place),
   };
-  return NextResponse.json({ sessions, statistics, ownerId: playerId }, { headers: NO_STORE });
+  const ratingHistory = [
+    ...sessions.filter(session => session.mode === "RANKED" || session.mode === "LEGACY").map(session => ({
+      id: session.id, before: session.ratingBefore, after: session.ratingAfter, at: session.createdAt, label: "result",
+    })),
+    ...adjustments.map(adjustment => ({
+      id: adjustment.matchId, before: adjustment.before, after: adjustment.after, at: adjustment.moderation.createdAt, label: "reversal",
+    })),
+  ].sort((a, b) => b.at.getTime() - a.at.getTime() || b.id.localeCompare(a.id)).slice(0, 60).reverse();
+  return NextResponse.json({ sessions, statistics, ratingHistory, ownerId: playerId }, { headers: NO_STORE });
 }

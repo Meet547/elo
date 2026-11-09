@@ -9,3 +9,5 @@ export interface ProfileStatistics {
   worstNet: number | null;
   finishes: { place: number; count: number }[];
 }
+
+export interface RatingHistoryEvent { before: number; after: number; at: string; label: string }

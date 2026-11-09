@@ -53,7 +53,8 @@
     "smoke:browser": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs --browser",
     "test:ranked-policy": "bun scripts/test-ranked-policy.ts",
     "test:ranked-events": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-ranked-events.ts",
-    "test:rating-statistics": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-rating-statistics.ts"
+    "test:rating-statistics": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-rating-statistics.ts",
+    "test:match-moderation": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-match-moderation.ts"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",

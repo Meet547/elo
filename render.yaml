@@ -24,7 +24,3 @@ services:
         sync: false
       - key: BACKEND_PROXY_SECRET
         sync: false
-      - key: OLLAMA_API_KEY
-        sync: false
-      - key: OLLAMA_MODEL
-        value: gpt-oss:120b

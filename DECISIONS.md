@@ -101,3 +101,7 @@ Ranked selection uses both players’ rating deviation, wait and pool. A three-m
 ## D025 — recorded lifetime statistics and inactivity periods
 
 The owner’s history endpoint calculates totals over all recorded rows and returns them alongside the latest 60. The chart plots actual settlement times. Match results remain immediate rating periods. Complete inactive 24-hour intervals increase only deviation. A UTC daily snapshot reconciles cumulative recorded movement and initial ratings, with unexplained drift logged for review.
+
+## D026 — local practice and compensating moderation
+
+Practice uses browser heuristics, with no model service dependency. Ranked review uses bounded pair and timing signals for operators. An administrator’s reason and action are recorded once per match. A settled result’s correction reverses the original delta against the current rating and preserves the original history and later results.

@@ -1,7 +1,7 @@
 import { spawnSync, spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 const require = createRequire(import.meta.url);
-for (const name of ['SESSION_SECRET','BACKEND_PROXY_SECRET','OLLAMA_API_KEY','DATABASE_URL','DIRECT_DATABASE_URL']) {
+for (const name of ['SESSION_SECRET','BACKEND_PROXY_SECRET','DATABASE_URL','DIRECT_DATABASE_URL']) {
   if (!process.env[name]) throw new Error(`${name} must be configured on Render.`);
 }
 if ([process.env.SESSION_SECRET,process.env.BACKEND_PROXY_SECRET].some(value=>value.includes('replace-with'))) throw new Error('Replace the example secrets before deploying.');

@@ -14,7 +14,7 @@ export async function GET(req: NextRequest) {
   const [players, me, wire] = await Promise.all([
     db.player.findMany({ where: { isSimulated: false, deletedAt: null }, orderBy: [{ rating: 'desc' }, { hands: 'desc' }, { id: 'asc' }], take: 60 }),
     playerId ? db.player.findUnique({ where: { id: playerId, isSimulated: false, deletedAt: null } }) : null,
-    db.session.findMany({ where: { mode: 'RANKED', player: { isSimulated: false, deletedAt: null } },
+    db.session.findMany({ where: { mode: 'RANKED', match: { moderation: null }, player: { isSimulated: false, deletedAt: null } },
       orderBy: [{ createdAt: 'desc' }, { id: 'desc' }], take: 14,
       include: { player: { select: { name: true } } } }),
   ]);

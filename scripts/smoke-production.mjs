@@ -16,7 +16,7 @@ const backendPort=Number(process.env.SMOKE_BACKEND_PORT || 4311);
 const frontendPort=Number(process.env.SMOKE_FRONTEND_PORT || 4312);
 const frontend=`http://127.0.0.1:${frontendPort}`;
 const backend=`http://127.0.0.1:${backendPort}`;
-const env={...process.env,NODE_ENV:'production',DATABASE_URL:databaseUrl,DIRECT_DATABASE_URL:databaseUrl,SESSION_SECRET:'smoke-test-signing-secret-not-a-real-secret',BACKEND_PROXY_SECRET:'smoke-test-proxy-secret-not-a-real-secret',OLLAMA_API_KEY:'test-only-no-inference',BACKEND_ORIGIN:backend,PORT:String(backendPort)};
+const env={...process.env,NODE_ENV:'production',DATABASE_URL:databaseUrl,DIRECT_DATABASE_URL:databaseUrl,SESSION_SECRET:'smoke-test-signing-secret-not-a-real-secret',BACKEND_PROXY_SECRET:'smoke-test-proxy-secret-not-a-real-secret',BACKEND_ORIGIN:backend,PORT:String(backendPort)};
 const children=[];
 let logs='';
 function run(file,args,extra={}) {
@@ -130,8 +130,8 @@ try {
  assert.deepEqual(await queueFrame(),matched.data);
  await queueReader.cancel();
  console.log('PASS — ranked match assignments reach the waiting player through the production SSE proxy');
- assert.equal((await request('/api/bots/decide',{method:'POST',body:'{}'})).response.status,401);
- assert.equal((await request('/api/bots/decide',{method:'POST',cookie:host.cookie,body:'{}'})).response.status,400);
+ const oldBotRoute=await fetch(`${frontend}/api/bots/decide`,{method:'POST',headers:{Cookie:host.cookie,'content-type':'application/json'},body:'{}'});
+ assert.equal(oldBotRoute.status,404);
  const csrf=await request('/api/profile',{method:'POST',headers:{Origin:'https://evil.example'},body:'{}'});assert.equal(csrf.response.status,403);
  backendProcess.kill('SIGTERM');
  await once(backendProcess,'exit');
@@ -139,7 +139,7 @@ try {
  await ready(`${backend}/api/health`);
  assert.equal((await request('/api/profile',{cookie:host.cookie})).data.player.name,'Smoke host','identity persists after backend restart');
  assert.equal((await request(`/api/live/${code}`,{cookie:host.cookie})).data.room.code,code,'live state persists after backend restart');
- console.log('PASS — restart persistence, two production services, migrations, proxy gate, profile cookies, private room create/join/start, card privacy, SSE, autonomous deadline worker, ranked queue/cancel, bot authentication and CSRF');
+ console.log('PASS — restart persistence, two production services, migrations, proxy gate, profile cookies, private room create/join/start, card privacy, SSE, autonomous deadline worker, ranked queue/cancel, closed Cloud bot endpoint and CSRF');
 } catch(error) { console.error(logs);throw error; }
 finally {
  for(const child of children)child.kill('SIGTERM');

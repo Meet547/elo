@@ -2,9 +2,10 @@
 
 import {useEffect,useState} from 'react';
 import {useFelt} from '@/store/game';
+import {MatchModeration} from './MatchModeration';
 import {TactileButton} from '@/components/felt/kit';
 
-type Account={verified:boolean;providers:string[];googleAvailable:boolean};
+type Account={verified:boolean;administrator:boolean;providers:string[];googleAvailable:boolean};
 export function AccountAccess(){
  const profile=useFelt(state=>state.profile);
  const [name,setName]=useState(profile?.name??'');
@@ -62,6 +63,7 @@ export function AccountAccess(){
    <a href="/api/account/export" className="inline-flex min-h-11 items-center underline">Download your data</a>
    <TactileButton disabled={busy} onClick={()=>void close()}>Close profile</TactileButton>
   </div>
+  {account?.administrator && <MatchModeration />}
   {error&&<p role="alert" className="text-sm text-carmine-deep">{error}</p>}
  </section>;
 }

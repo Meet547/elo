@@ -91,3 +91,9 @@
 - Calculate lifetime profile statistics on the server and show the denominator for first-place rate.
 - Plot and scrub recorded ratings by actual settlement time.
 - Apply inactivity growth to RD in profile, ladder and ranked snapshots. Record daily rating drift and test the raw Glicko-2 reference vector.
+
+## WS11 — local practice and audited moderation
+
+- Use local practice bots and remove the Cloud request path and deployment key requirement.
+- Give allowlisted verified administrators a pair review and transactional match void or rating reversal.
+- Show reversals in the owner’s rating timeline and include compensation in daily ladder reconciliation.

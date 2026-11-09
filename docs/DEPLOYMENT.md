@@ -15,7 +15,7 @@ npm ci --include=dev && npm run build:backend
 npm run start:backend
 ```
 
-Startup applies committed Postgres migrations and stops on migration/configuration failure before listening on provider PORT. Set NODE_VERSION=22, SESSION_SECRET and BACKEND_PROXY_SECRET to existing stable values where applicable. Preserving SESSION_SECRET is required for legacy-cookie migration compatibility. Current bot integration also requires backend OLLAMA_API_KEY; OLLAMA_MODEL defaults to gpt-oss:120b. Cloud practice removal and bot authorization changes remain WS11 work.
+Startup applies committed Postgres migrations and stops on migration/configuration failure before listening on provider PORT. Set NODE_VERSION=22, SESSION_SECRET and BACKEND_PROXY_SECRET to existing stable values where applicable. Preserving SESSION_SECRET is required for legacy-cookie migration compatibility. Practice uses local heuristic bots and requires no model service.
 
 Set NEXT_PUBLIC_SITE_URL on the backend to the exact frontend origin for OAuth redirects. Google credentials and ADMIN_EMAILS are optional until the provider is configured; see AUTH_SETUP.md. Google credentials must stay server-only despite the shared public origin variable.
 
@@ -31,7 +31,7 @@ Set these in **Project → Settings → Environment Variables**:
 - BACKEND_PROXY_SECRET: exactly the backend's proxy secret; server-only.
 - NEXT_PUBLIC_SITE_URL: the exact frontend HTTPS origin.
 
-Redeploy after changes. Browser requests stay on the frontend origin; cookies are host-only and HttpOnly. OAuth redirects, cookies and SSE cross the server bridge. Never set Google client secret, session secret, database URLs, proxy secret or Ollama key in NEXT_PUBLIC-prefixed variables.
+Redeploy after changes. Browser requests stay on the frontend origin; cookies are host-only and HttpOnly. OAuth redirects, cookies and SSE cross the server bridge. Never set Google client secret, session secret, database URLs, or proxy secret in NEXT_PUBLIC-prefixed variables.
 
 ## Existing history and rollout
 
