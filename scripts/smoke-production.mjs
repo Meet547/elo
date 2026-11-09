@@ -1,5 +1,5 @@
 import assert from 'node:assert/strict';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import { PrismaClient } from '@prisma/client';
 import { spawn } from 'node:child_process';
 import { mkdtemp, rm } from 'node:fs/promises';
@@ -49,8 +49,52 @@ try {
  const code=created.data.room.code;assert.match(code,/^[A-Z0-9]{6}$/);
  const joined=await request(`/api/live/${code}`,{method:'POST',cookie:guest.cookie,body:JSON.stringify({revision:created.data.room.revision,command:{type:'join'}})});
  assert.equal(joined.response.status,200);
- const started=await request(`/api/live/${code}`,{method:'POST',cookie:host.cookie,body:JSON.stringify({revision:joined.data.room.revision,command:{type:'start'}})});
+ let started;
+ if(process.argv.includes('--browser')){
+  const {chromium,expect}=await import('@playwright/test');
+  const browser=await chromium.launch();
+  try{
+   const contexts=await Promise.all([host,guest].map(async participant=>{
+    const context=await browser.newContext();const split=participant.cookie.indexOf('=');
+    await context.addCookies([{name:participant.cookie.slice(0,split),value:participant.cookie.slice(split+1),url:frontend,httpOnly:true,sameSite:'Lax'}]);
+    return context;
+   }));
+   const pages=await Promise.all(contexts.map(context=>context.newPage()));
+   await Promise.all(pages.map(page=>page.goto(`${frontend}/live/${code}`)));
+   await expect(pages[0].getByRole('button',{name:'Start game',exact:true})).toBeVisible();
+   await expect(pages[1].getByText('Waiting for the host to start the game.')).toBeVisible();
+   await pages[0].getByRole('button',{name:'Start game',exact:true}).click();
+   await expect.poll(async()=>(await request(`/api/live/${code}`,{cookie:host.cookie})).data.room.status,{timeout:12_000}).toBe('playing');
+   started=await request(`/api/live/${code}`,{cookie:host.cookie});
+   const secrets=await pages[0].evaluate(()=>Object.keys(sessionStorage).filter(key=>key.startsWith('elo:private-seed:v1:')).map(key=>sessionStorage.getItem(key)));
+   assert.equal(secrets.length,1,'browser must keep one private seed for this room');
+   await pages[0].reload();
+   assert.deepEqual(await pages[0].evaluate(()=>Object.keys(sessionStorage).filter(key=>key.startsWith('elo:private-seed:v1:')).map(key=>sessionStorage.getItem(key))),secrets,'same-tab reload must retain the original seed');
+   await pages[1].goto(`${frontend}/verify/${started.data.room.game.fairProof.handId}`);
+   await expect(pages[1].getByText('Commitment recorded; no cards were publicly disclosed.')).toBeVisible();
+   await expect(pages[1].getByText('Complete deck replay is an internal audit, because publishing its inputs would reveal hidden cards.',{exact:false})).toBeVisible();
+   console.log('PASS — two actual browser contexts complete the automatic private seed exchange, retain seeds across reload and render public membership verification');
+  }finally{await browser.close();}
+ }else{
+ started=await request(`/api/live/${code}`,{method:'POST',cookie:host.cookie,body:JSON.stringify({revision:joined.data.room.revision,command:{type:'start'}})});
  assert.equal(started.response.status,200);
+ const participants=[host,guest],seeds=participants.map(()=>randomBytes(32).toString('hex'));
+ for(const [index,participant] of participants.entries()){
+  const current=(await request(`/api/live/${code}`,{cookie:participant.cookie})).data.room;
+  const commitment=createHash('sha256').update(JSON.stringify(['elo-seed-v1','client',`${current.fair.context}:${participant.data.player.id}`,seeds[index]])).digest('hex');
+  assert.equal((await request(`/api/live/${code}`,{method:'POST',cookie:participant.cookie,body:JSON.stringify({revision:current.revision,command:{type:'seed-commit',commitment}})})).response.status,200);
+ }
+ for(const [index,participant] of participants.entries()){
+  const current=(await request(`/api/live/${code}`,{cookie:participant.cookie})).data.room;
+  started=await request(`/api/live/${code}`,{method:'POST',cookie:participant.cookie,body:JSON.stringify({revision:current.revision,command:{type:'seed-reveal',seed:seeds[index]}})});
+  assert.equal(started.response.status,200);
+ }
+ assert(started.data.room.game,'all client commitments and reveals must precede the deal');
+ const evidence=await request(`/api/verify/${started.data.room.game.fairProof.handId}`);
+ assert.equal(evidence.response.status,200);assert.equal(evidence.data.hand.cards.length,0,'public archive must not disclose private hole cards');
+
+ }
+ started=await request(`/api/live/${code}`,{cookie:host.cookie});
  assert.equal(started.data.room.seats[1].cards.length,0,'opponent cards stay private');
  const controller=new AbortController();
  const events=await fetch(`${frontend}/api/live/${code}/events`,{headers:{Cookie:host.cookie},signal:controller.signal});

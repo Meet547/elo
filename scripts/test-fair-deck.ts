@@ -1,3 +1,5 @@
+import {verifyFairAudit} from '../backend/src/lib/fair-audit';
+import {newSession,startHand} from '../src/lib/poker/engine';
 import assert from 'node:assert/strict';
 import {createHash} from 'node:crypto';
 import {seedCommitment,deriveFairSeed,sealFairDeck,cardProof,verifyCardProof,type SeedTranscript} from '../src/lib/poker/fair-deck';
@@ -8,6 +10,10 @@ for(let i=0;i<10_000;i++){
  const transcript:SeedTranscript={roomId,serverSeed,serverCommitment:seedCommitment('server',roomId,serverSeed),clients:['a','b'].map(playerId=>{const seed=secret(`${playerId}-${i}`);return {playerId,seed,commitment:seedCommitment('client',`${roomId}:${playerId}`,seed)};})};
  const salts=Array.from({length:52},(_,index)=>secret(`test-salt-${i}-${index}`));
  const sealed=sealFairDeck(transcript,handId,salts),replay=sealFairDeck({...transcript,clients:[...transcript.clients].reverse()},handId,salts);
+ const game=newSession(transcript.clients.map(client=>({id:client.playerId,name:client.playerId,isHuman:true,rating:1200})));
+ startHand(game,deriveFairSeed(transcript,handId));game.deckCommit=sealed.root;
+ const audit={round:{version:1,context:roomId,serverSeed,serverCommitment:transcript.serverCommitment,phase:'ready',participants:transcript.clients.map(client=>client.playerId),commitments:Object.fromEntries(transcript.clients.map(client=>[client.playerId,client.commitment])),reveals:Object.fromEntries(transcript.clients.map(client=>[client.playerId,client.seed]))},hand:sealed,game};
+ assert(verifyFairAudit(JSON.parse(JSON.stringify(audit)),sealed.root),'trusted audit must reproduce the actual engine deal');
  assert.deepEqual(sealed.deck,replay.deck);assert.equal(sealed.root,replay.root);assert.equal(new Set(sealed.deck.map(card=>card.id)).size,52);
  const proof=cardProof(sealed,i%52);assert(verifyCardProof(sealed.root,proof));
  assert(!verifyCardProof(sealed.root,{...proof,salt:secret('tampered')}));
@@ -29,4 +35,4 @@ for(let i=0;i<10_000;i++){
   assert(!verifyCardProof(sealed.root,{...proof,siblings:[]}));assert.throws(()=>sealFairDeck(transcript,handId,Array(52).fill(secret('same'))),/unique/);
  }
 }
-console.log('PASS — 10,000 deterministic internal deck replays; selective proofs reject tampered seed/card/index/hand/salt/path; public proof contains no seed');
+console.log('PASS — 10,000 deterministic internal deck/engine audit replays; selective proofs reject tampered seed/card/index/hand/salt/path; public proof contains no seed');

@@ -87,3 +87,9 @@ Live serializers keep full shuffle seeds private after settlement, including his
 ## D022 — sample tournament length, assert hand termination
 
 A tournament can legitimately exceed 200 hands. The stress test keeps a bounded tournament sample and reports how many samples reached it, while preserving individual-hand termination, legality, burn/deal order, card uniqueness, chip conservation and stack checks. The independent deterministic 100,000-hand suite remains required. This changes test interpretation, not game/session rules.
+
+## D023 — bounded seed preparation and selective hand archive
+
+Both ranked confirmations still have 15 seconds; after confirmation, the frozen client seed exchange receives its own 15 seconds so a timely last confirmation can complete. Private preparation uses the same bounded exchange. Timeout aborts without a substitute seed or rated result. Browser seeds are pinned to the original server commitment and persisted per owner/room. New rooms use the protocol; old room states remain explicit legacy commitments without fabricated participants.
+
+The hand archive transactionally stores separate public membership evidence and private replay input, rejects root replacement and freezes completed evidence. Public verification survives room expiry and reveals only public board/showdown cards. Trusted audit checks seed combination, root and actual deal/burn order. Public full-shuffle verification is unavailable under folded-card privacy, and the page explicitly limits the claim to membership. Integrity archives remain sensitive and retained under the existing closure policy pending a final legal retention policy.

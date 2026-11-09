@@ -1,9 +1,10 @@
 import assert from 'node:assert/strict';
-import {randomBytes,randomUUID} from 'node:crypto';
+import {randomBytes,randomUUID,createHash} from 'node:crypto';
 import {NextRequest} from 'next/server';
 import {db} from '../backend/src/lib/db';
 import {shutdownRealtime,realtime} from '../backend/src/lib/realtime';
 import {GET} from '../backend/src/app/api/live/[code]/events/route';
+import {seedCommitment} from '../src/lib/poker/fair-deck';
 import {newLiveTable,applyLiveCommand} from '../src/lib/poker/live-table';
 import {roomRecord,readLiveRoom,commandLiveRoom} from '../backend/src/lib/live-rooms';
 import {signSession,SESSION_COOKIE,revokePlayerSessions} from '../backend/src/lib/session';
@@ -14,7 +15,11 @@ const delegate=db.liveRoom,original=delegate.findUnique;
 let reads=0;
 try{
  const players=await Promise.all(Array.from({length:14},(_,i)=>db.player.create({data:{id:randomUUID(),name:`Fanout ${i}`}})));
- const table=newLiveTable(players[0]);for(const player of players.slice(1,6))applyLiveCommand(table,player,{type:'join'},Date.now());applyLiveCommand(table,players[0],{type:'start'},Date.now());
+ const table=newLiveTable(players[0],true);for(const player of players.slice(1,6))applyLiveCommand(table,player,{type:'join'},Date.now());applyLiveCommand(table,players[0],{type:'start'},Date.now());
+ const seeds=players.slice(0,6).map(player=>createHash('sha256').update(player.id).digest('hex'));
+ for(const [index,player] of players.slice(0,6).entries())assert.equal(applyLiveCommand(table,player,{type:'seed-commit',commitment:seedCommitment('client',`${table.fair!.round.context}:${player.id}`,seeds[index])},Date.now()),null);
+ for(const [index,player] of players.slice(0,6).entries())assert.equal(applyLiveCommand(table,player,{type:'seed-reveal',seed:seeds[index]},Date.now()),null);
+
  const row=await db.liveRoom.create({data:roomRecord(table)});
  Reflect.set(delegate,'findUnique',(...args:unknown[])=>{reads++;return Reflect.apply(original,delegate,args);});
  for(const viewer of players){
@@ -23,6 +28,8 @@ try{
   const frame=new TextDecoder().decode((await reader.read()).value);
   const snapshot=JSON.parse(frame.match(/data: (.+)/)![1]);
   assert.equal(snapshot.game.deckSeed,null);assert(!('deck' in snapshot.game));
+  assert(!JSON.stringify(snapshot).includes(table.fair!.round.serverSeed));for(const seed of seeds)assert(!JSON.stringify(snapshot).includes(seed));
+  assert.equal(snapshot.game.fairProof.cards.length,players.slice(0,6).some(player=>player.id===viewer.id)?2:0);
   for(const seat of snapshot.seats)assert.equal(seat.cards.length,players.slice(0,6).some((player,index)=>player.id===viewer.id&&seat.idx===index)?2:0);
  }
  await new Promise(resolve=>setTimeout(resolve,1050));

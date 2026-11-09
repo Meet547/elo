@@ -92,16 +92,20 @@
       "evidence": "backend/src/lib/live-rooms.ts:88; src/store/game.ts:855; current legacy practice settlement is disabled"
     },
     "F9": {
-      "status": "partial",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS8",
       "evidence": "src/lib/poker/live-table.ts:220; src/lib/poker/cards.ts:103; betting-time filtering exists, permanent privacy does not",
-      "reason": "Live full-seed disclosure removed to preserve folded-card privacy; context-bound seed/Merkle utilities tested for 10,000 internal replays. Live commit/reveal integration, durable evidence and public verification page remain pending.",
+      "reason": "New live rooms use a private seed exchange and an atomic hand archive. Public verification checks disclosed-card membership. Trusted audit verifies complete deck derivation and deal order.",
       "tests": [
         "scripts/test-secure-random.ts",
         "scripts/test-folded-privacy.ts",
         "scripts/test-fair-deck.ts",
-        "scripts/test-fair-round.ts"
+        "scripts/test-fair-round.ts",
+        "scripts/test-client-seed.ts",
+        "scripts/test-live-fairness.ts",
+        "scripts/test-fair-archive.ts",
+        "scripts/smoke-production.mjs"
       ]
     },
     "F10": {

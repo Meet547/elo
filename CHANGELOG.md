@@ -73,3 +73,9 @@
 
 - Keep live full-shuffle seeds private after settlement so folded cards cannot be reconstructed. The panel states the commitment's limited scope. Add context-bound seed/Merkle utilities and 10,000 internal replay/tamper tests; live exchange/archive/page integration remains pending.
 - Correct the stress test's arbitrary tournament-length assertion: report a 200-hand sampling cap while preserving all per-hand correctness checks and the separate 100,000-hand deterministic suite.
+
+## WS8 — live exchange and hand verification
+
+- Activate server/client commit-before-reveal dealing in new private rooms and ranked proposals, with frozen seats, fail-closed preparation deadlines and browser seed pinning/reload recovery. Give preparation a separate 15-second window after ranked confirmation.
+- Persist separate public/private hand evidence atomically; reject root replacement and freeze completed archives. Verify disclosed cards at /verify/[handId] and keep folded cards/seeds private after settlement and room expiry.
+- Check actual engine deal/burn order in trusted audits; extend 10,000-hand proof tests, real two-browser production smoke and protected-room spectator load coverage. Public membership is not an unbiased-shuffle proof.

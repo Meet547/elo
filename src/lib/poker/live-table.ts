@@ -7,6 +7,9 @@ import {
   type BotAction,
   type GameState,
 } from "./engine";
+import {newFairRound,freezeFairParticipants,commitClientSeed,revealClientSeed,fairTranscript,publicFairRound,abortFairRound,type FairRound} from "./fair-round";
+import {deriveFairSeed,sealFairDeck,cardProof,type SealedFairDeck} from "./fair-deck";
+import {sha256Hex} from "./rng";
 import type { HandValue } from "./evaluator";
 import { shortHandLabel } from "./hand-label";
 import { HUMAN_TURN_MS } from "./turn-timing";
@@ -34,6 +37,7 @@ export interface LiveTable {
   nextAt: number | null;
   handStacks: number[];
   eliminated: number[];
+  fair?: {round:FairRound;hand?:SealedFairDeck;evidence?:PublicFairHand};
   ranked?: {
     matchId?: string;
     proposal?: { deadline: number; accepted: boolean[]; declinedBy?: number };
@@ -50,14 +54,16 @@ export interface LiveTable {
 export type LiveCommand =
   | { type: "join" | "leave" | "start" }
   | { type: "act"; action: BotAction }
-  | { type: "ready"; accept: boolean };
+  | { type: "ready"; accept: boolean }
+  | { type: "seed-commit"; commitment:string }
+  | { type: "seed-reveal"; seed:string };
 
 type Identity = Pick<LivePlayer, "id" | "name" | "rating">;
 
-export function newLiveTable(host: Identity): LiveTable {
+export function newLiveTable(host: Identity, fair=false): LiveTable {
   return {
     host: host.id, players: [seatPlayer(host)], status: "waiting", game: null,
-    nextAt: null, handStacks: [], eliminated: [],
+    nextAt: null, handStacks: [], eliminated: [], ...(fair?{fair:{round:newFairRound()}}:{}),
   };
 }
 
@@ -71,7 +77,7 @@ export function newRankedTable(a: Identity, b: Identity, now: number): LiveTable
 
 /** Production matchmaking proposes a room without dealing any private cards. */
 export function newProposedRankedTable(a: Identity, b: Identity, now: number): LiveTable {
-  const table = newLiveTable(a);
+  const table = newLiveTable(a,true);
   table.players.push(seatPlayer(b));
   table.ranked = { scores: [0, 0], completedHands: 0, lastSeen: [now, now], missed: [0, 0], proposal: { deadline: now + RANKED_READY_MS, accepted: [false, false] } };
   table.nextAt = table.ranked.proposal!.deadline;
@@ -97,7 +103,15 @@ function finishTable(table: LiveTable) {
 function nextHand(table: LiveTable, now: number) {
   const game = table.game!;
   table.handStacks = game.seats.map((seat) => seat.stack);
-  startHand(game);
+  if(table.fair){
+    const handId=sha256Hex(`${table.fair.round.context}:${game.handNo+1}`);
+    const transcript=fairTranscript(table.fair.round);
+    table.fair.hand=sealFairDeck(transcript,handId);
+    startHand(game,deriveFairSeed(transcript,handId));
+    game.deckCommit=table.fair.hand.root;
+    const seal=game.log.findLast(entry=>entry.text.startsWith('deck sealed · commit '));
+    if(seal)seal.text=`deck sealed · commit ${game.deckCommit.slice(0,12)}`;
+  }else startHand(game);
   scheduleDecision(table, now, true);
 }
 
@@ -149,6 +163,11 @@ function terminateUnresponsive(table:LiveTable,now:number):boolean {
 
 /** Advance expired decisions even if the player closed the tab. */
 export function advanceLiveTable(table: LiveTable, now: number): boolean {
+  if(table.status==='waiting'&&table.fair&&['committing','revealing'].includes(table.fair.round.phase)&&table.nextAt!==null&&now>=table.nextAt){
+    abortFairRound(table.fair.round);table.status='closed';table.nextAt=null;
+    if(table.ranked)table.ranked.cancelReason='seed-timeout';
+    return true;
+  }
   if (table.status === "waiting" && table.ranked?.proposal && now >= table.ranked.proposal.deadline) {
     table.status = "closed"; table.nextAt = null; table.ranked.cancelReason = "ready-timeout";
     return true;
@@ -196,6 +215,16 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
   if (table.status === "finished" || table.status === "closed") return "This room is finished.";
   const seat = table.players.findIndex((p) => p.id === player.id);
   if(table.ranked&&seat>=0){table.ranked.lastSeen??=[now,now];table.ranked.lastSeen[seat]=now;}
+  if(command.type==='seed-commit'||command.type==='seed-reveal'){
+    if(seat<0||table.status!=='waiting'||!table.fair)return 'No seed exchange is available for this seat.';
+    if(table.nextAt!==null&&now>=table.nextAt)return 'The seed exchange expired.';
+    try{
+      if(command.type==='seed-commit')commitClientSeed(table.fair.round,player.id,command.commitment);
+      else revealClientSeed(table.fair.round,player.id,command.seed);
+      if(table.fair.round.phase==='ready')startTable(table,now);
+      return null;
+    }catch(error){return error instanceof Error?error.message:'Invalid seed exchange.';}
+  }
   if (table.ranked?.proposal && table.status === "waiting") {
     if (seat < 0) return "This proposal belongs to its two matched players.";
     if (command.type !== "ready") return "Confirm or decline this ranked proposal.";
@@ -207,13 +236,19 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
     } else {
       if (table.ranked.proposal.accepted[seat]) return "You already confirmed.";
       table.ranked.proposal.accepted[seat] = true;
-      if (table.ranked.proposal.accepted.every(Boolean)) startTable(table, now);
+      if (table.ranked.proposal.accepted.every(Boolean)) {
+        if(table.fair){
+          freezeFairParticipants(table.fair.round,table.players.map(player=>player.id));
+          table.ranked.proposal.deadline=now+RANKED_READY_MS;table.nextAt=table.ranked.proposal.deadline;
+        }
+        else startTable(table, now);
+      }
     }
     return null;
   }
   if (command.type === "join") {
     if (seat >= 0) return null;
-    if (table.status !== "waiting") return "This game has already started.";
+    if (table.status !== "waiting"||table.fair&&table.fair.round.phase!=="waiting") return "This game has already started.";
     if (table.players.length >= LIVE_CAPACITY) return "All six seats are taken.";
     table.players.push(seatPlayer(player));
     return null;
@@ -222,6 +257,9 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
   if (seat < 0) return "Take a seat first.";
   if (command.type === "leave") {
     if (table.status !== "waiting") return "You can reconnect to a game in progress with the invite link.";
+    if(table.fair&&table.fair.round.phase!=='waiting'){
+      abortFairRound(table.fair.round);table.status='closed';table.nextAt=null;return null;
+    }
     table.players.splice(seat, 1);
     if (!table.players.length) table.status = "closed";
     else if (table.host === player.id) table.host = table.players[0].id;
@@ -231,7 +269,10 @@ export function applyLiveCommand(table: LiveTable, player: Identity, command: Li
   if (command.type === "start") {
     if (table.host !== player.id || table.status !== "waiting") return "Only the host can start a waiting room.";
     if (table.players.length < 2) return "Invite at least one other player.";
-    startTable(table, now);
+    if(table.fair){
+      if(table.fair.round.phase!=='waiting')return 'The private deal is already being prepared.';
+      freezeFairParticipants(table.fair.round,table.players.map(player=>player.id));table.nextAt=now+RANKED_READY_MS;
+    }else startTable(table, now);
     return null;
   }
 
@@ -276,6 +317,7 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
   const revealed = g && g.phase !== "betting";
   return {
     serverNow: Date.now(), code, revision, me, status: table.status,
+    fair: table.fair?publicFairRound(table.fair.round):null,
     ranked: table.ranked ? { matchId:table.ranked.matchId,scores:table.ranked.scores,completedHands:table.ranked.completedHands,ratings:table.ranked.ratings,proposal:table.ranked.proposal,cancelReason:table.ranked.cancelReason,outcome:table.ranked.outcome,hands:RANKED_HANDS } : null,
     host: table.players.findIndex((p) => p.id === table.host),
     nextAt: table.nextAt,
@@ -292,6 +334,10 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
     game: g ? {
       handNo: g.handNo, phase: g.phase, street: g.street, button: g.button,
       toAct: g.toAct, sb: g.sb, bb: g.bb, pot: g.collected + g.seats.reduce((sum, s) => sum + s.bet, 0),
+      fairProof: table.fair?.hand?{
+        handId:table.fair.hand.handId,root:table.fair.hand.root,
+        cards:[...g.board,...g.seats.flatMap(seat=>seat.idx===me||(revealed&&seat.revealed)?seat.cards:[])].map(card=>cardProof(table.fair!.hand!,table.fair!.hand!.deck.findIndex(candidate=>candidate.id===card.id))),
+      }:null,
       board: g.board, deckCommit: g.deckCommit, deckSeed: null as string | null,
       log: g.log.slice(-24).map(entry => entry.text.startsWith("deck opened · seed ") ? {...entry,text:"hand settled · hidden cards remain private"} : entry), awards: g.awards?.map((a) => ({ seatIdx: a.seatIdx, amount: a.amount, hand: shortHandLabel(a.hand) })) ?? [],
       legal: g.phase === "betting" && g.toAct === me ? legalActions(g, me) : null,
@@ -301,3 +347,12 @@ export function publicLiveTable(table: LiveTable, playerId: string, code: string
 }
 
 export type LiveSnapshot = ReturnType<typeof publicLiveTable>;
+
+
+export interface PublicFairHand {handId:string;root:string;cards:ReturnType<typeof cardProof>[];complete:boolean;aborted:boolean;scope:'disclosed-card-membership-v1'}
+/** Persist a spectator projection, never another seat's private proof set. */
+export function refreshFairEvidence(table:LiveTable){
+ if(!table.fair?.hand||!table.game)return;
+ const proof=publicLiveTable(table,'','',0).game!.fairProof!;
+ table.fair.evidence={...proof,complete:table.status==='closed'||table.game.phase!=='betting',aborted:table.status==='closed',scope:'disclosed-card-membership-v1'};
+}

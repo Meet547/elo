@@ -31,3 +31,4 @@ const unusual=newFairRound();freezeFairParticipants(unusual,['__proto__','toStri
 for(const id of unusual.participants)commitClientSeed(unusual,id,seedCommitment('client',`${unusual.context}:${id}`,a));
 for(const id of unusual.participants)revealClientSeed(unusual,id,a);
 assert.equal(unusual.phase,'ready');assert.doesNotThrow(()=>fairTranscript(JSON.parse(JSON.stringify(unusual))));
+Object.assign(unusual,{version:2});assert.throws(()=>fairTranscript(unusual),/Unsupported fairness version/);

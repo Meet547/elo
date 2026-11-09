@@ -1,11 +1,12 @@
 import assert from 'node:assert/strict';
-import {randomUUID,randomBytes} from 'node:crypto';
+import {randomUUID,randomBytes,createHash} from 'node:crypto';
 import {mkdtemp,writeFile,rm} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:http';
 import {db} from '../backend/src/lib/db';
+import {seedCommitment} from '../src/lib/poker/fair-deck';
 import {newLiveTable,applyLiveCommand} from '../src/lib/poker/live-table';
 import {roomRecord} from '../backend/src/lib/live-rooms';
 import {signSession,SESSION_COOKIE} from '../backend/src/lib/session';
@@ -25,7 +26,11 @@ const coordinator=createServer((req,res)=>{
 let act=async()=>{};
 try{
  const players=await Promise.all(Array.from({length:506},(_,i)=>db.player.create({data:{id:randomUUID(),name:`Load ${i}`}})));
- const table=newLiveTable(players[0]);for(const player of players.slice(1,6))applyLiveCommand(table,player,{type:'join'},Date.now());applyLiveCommand(table,players[0],{type:'start'},Date.now());
+ const table=newLiveTable(players[0],true);for(const player of players.slice(1,6))applyLiveCommand(table,player,{type:'join'},Date.now());applyLiveCommand(table,players[0],{type:'start'},Date.now());
+ const seeds=players.slice(0,6).map(player=>createHash('sha256').update(player.id).digest('hex'));
+ for(const [index,player] of players.slice(0,6).entries())assert.equal(applyLiveCommand(table,player,{type:'seed-commit',commitment:seedCommitment('client',`${table.fair!.round.context}:${player.id}`,seeds[index])},Date.now()),null);
+ for(const [index,player] of players.slice(0,6).entries())assert.equal(applyLiveCommand(table,player,{type:'seed-reveal',seed:seeds[index]},Date.now()),null);
+
  // Extension resolution can download a binary before subscribers start; exclude setup from the decision clock.
  table.nextAt=Date.now()+120_000;
  const row=await db.liveRoom.create({data:roomRecord(table)});

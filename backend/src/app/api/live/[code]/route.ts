@@ -15,6 +15,8 @@ const payload = z.object({
   command: z.discriminatedUnion("type", [
     z.object({ type: z.literal("join") }), z.object({ type: z.literal("leave") }),
     z.object({ type: z.literal("ready"), accept: z.boolean() }),
+    z.object({type:z.literal("seed-commit"),commitment:z.string().regex(/^[a-f0-9]{64}$/)}),
+    z.object({type:z.literal("seed-reveal"),seed:z.string().regex(/^[a-f0-9]{64}$/)}),
     z.object({ type: z.literal("start") }), z.object({ type: z.literal("act"), action }),
   ]),
 });

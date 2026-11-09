@@ -97,7 +97,7 @@ async function commitProposal(client: DatabaseClient, row: LiveRoom, table: Live
         await tx.matchSettlement.create({data:{matchId,algorithmVersion:'ready-void-v1',result:{reason:table.ranked!.cancelReason??'cancelled',ratingChanges:[]}}});
         await tx.match.update({where:{id:matchId},data:{readyDeadlineAt:null}});
       } else if (table.status === 'waiting' && table.game === null) {
-        const claimed = await tx.match.updateMany({where:{id:matchId,state:'PROPOSED'},data:{version:{increment:1}}});
+        const claimed = await tx.match.updateMany({where:{id:matchId,state:'PROPOSED'},data:{version:{increment:1},readyDeadlineAt:table.nextAt===null?null:new Date(table.nextAt)}});
         if (!claimed.count) throw new RoomRevisionConflict();
       } else throw new Error('Invalid proposal state.');
       const updated = await tx.liveRoom.updateMany({where:{code:row.code,revision:row.revision},data:{state:JSON.stringify(table),revision:{increment:1},nextDeadlineAt:table.nextAt===null?null:new Date(table.nextAt)}});

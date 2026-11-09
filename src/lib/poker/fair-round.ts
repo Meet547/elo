@@ -52,6 +52,7 @@ export function revealClientSeed(round:FairRound,id:string,value:string){
 export function abortFairRound(round:FairRound){round.phase='aborted';}
 /** Private trusted replay input, never a public response. No replacement seed on abort. */
 export function fairTranscript(round:FairRound):SeedTranscript{
+ if(round.version!==1)throw new Error('Unsupported fairness version.');
  if(round.phase!=='ready')throw new Error('The fairness exchange is incomplete.');
  const transcript={roomId:round.context,serverSeed:round.serverSeed,serverCommitment:round.serverCommitment,clients:round.participants.map(playerId=>({playerId,commitment:own(round.commitments,playerId)!,seed:own(round.reveals,playerId)!}))};
  // Recheck persisted commitment/reveal data before any hand can use it.

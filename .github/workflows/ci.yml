@@ -36,6 +36,9 @@ jobs:
       - run: npm run typecheck
       - run: npm run lint
       - run: npm run test:folded-privacy
+      - run: npm run test:client-seed
+      - run: npm run test:live-fairness
+      - run: npm run test:fair-archive
       - run: npm run test:fair-round
       - run: npm run test:fair-deck
       - run: npm run test:secure-random
@@ -68,3 +71,5 @@ jobs:
       - run: npm run test:ranked-integrity
       - run: npm run test:settlement-crash
       - run: npm run smoke:production
+      - run: npx playwright install --with-deps chromium
+      - run: npm run smoke:browser

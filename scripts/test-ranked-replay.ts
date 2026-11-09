@@ -1,3 +1,4 @@
+import {completeFairExchange} from './fixtures/complete-fair-exchange';
 import assert from 'node:assert/strict';
 import { randomUUID } from 'node:crypto';
 import { db } from '../backend/src/lib/db';
@@ -24,6 +25,7 @@ try {
     const current = (await readLiveRoom(code,player.id))!;
     assert.equal((await commandLiveRoom(code,player.id,current.revision,{type:'ready',accept:true})).status,200);
   }
+  await completeFairExchange(code,players);
   room = (await readLiveRoom(code,players[0].id))!;
   const hostSeat = room.me;
   for (let step = 0; room.status !== 'finished' && step < 100; step++) {

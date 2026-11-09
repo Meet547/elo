@@ -1,3 +1,4 @@
+import {completeFairExchange} from './fixtures/complete-fair-exchange';
 import assert from 'node:assert/strict';
 import {randomUUID} from 'node:crypto';
 import {db} from '../backend/src/lib/db';
@@ -14,7 +15,14 @@ try{
  console.log('PASS — ranked proposal deals no cards before readiness');
  const first=await commandLiveRoom(match.code,a.id,room.revision,{type:'ready',accept:true});assert.equal(first.status,200);
  const accepted=await readLiveRoom(match.code,b.id);assert(accepted);assert.equal(accepted.game,null);
- const second=await commandLiveRoom(match.code,b.id,accepted.revision,{type:'ready',accept:true});assert.equal(second.status,200);
+ const realReadyNow=Date.now,lateConfirmation=accepted.ranked!.proposal!.deadline-1;
+ try{
+  Date.now=()=>lateConfirmation;
+  const second=await commandLiveRoom(match.code,b.id,accepted.revision,{type:'ready',accept:true});assert.equal(second.status,200);
+  const preparing=(await readLiveRoom(match.code,a.id))!;assert.equal(preparing.game,null);
+  assert.equal(preparing.nextAt,lateConfirmation+15000,'a timely last confirmation gets a full independent seed-exchange window');
+ }finally{Date.now=realReadyNow;}
+ await completeFairExchange(match.code,[a,b]);
  const started=await readLiveRoom(match.code,a.id);assert(started?.game);assert.equal(started.game.handNo,1);
  const record=await db.liveRoom.findUniqueOrThrow({where:{code:match.code}});
  assert.equal((await db.match.findUniqueOrThrow({where:{id:record.matchId!}})).state,'ACTIVE');

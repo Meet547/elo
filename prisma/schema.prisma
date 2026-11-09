@@ -223,3 +223,14 @@ model RoomEvent {
   @@id([roomCode,revision])
   @@index([createdAt])
 }
+
+model FairHand {
+  handId String @id
+  roomCode String
+  handNo Int
+  publicData Json
+  auditData Json
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  @@index([roomCode, handNo])
+}

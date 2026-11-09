@@ -4,7 +4,7 @@ import {processRoomDeadline} from './live-rooms';
 import {transitionMatch} from './match-state';
 import {allowsMatchTransition,type MatchPhase} from '@/lib/poker/match-state';
 import {RANKED_PRESENCE_MS} from '@/lib/poker/ranked-match';
-import type {LiveTable} from '@/lib/poker/live-table';
+import {refreshFairEvidence,type LiveTable} from '@/lib/poker/live-table';
 
 /** One bounded cycle; no client-provided clock, action, player or game state. */
 export async function processDeadlineBatch(now=Date.now()){
@@ -23,6 +23,7 @@ export async function processDeadlineBatch(now=Date.now()){
   }
   const table=JSON.parse(row.state) as LiveTable;table.status='closed';table.nextAt=null;
   if(table.ranked)table.ranked.outcome={kind:'void',reason:'expired-room'};
+  refreshFairEvidence(table);
   const changed=await tx.liveRoom.updateMany({where:{code:row.code,revision:row.revision},data:{state:JSON.stringify(table),nextDeadlineAt:null,revision:{increment:1}}});
   if(!changed.count)throw new Error("Expired room revision changed; retry next cycle.");
   await tx.rankedSeat.deleteMany({where:{roomCode:row.code}});

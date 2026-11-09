@@ -44,9 +44,13 @@
     "test:realtime": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-realtime-fanout.ts",
     "test:spectator-load": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-spectator-load.ts",
     "test:secure-random": "bun scripts/test-secure-random.ts",
-    "test:fair-deck": "bun scripts/test-fair-deck.ts",
+    "test:fair-deck": "bun --conditions=react-server scripts/test-fair-deck.ts",
     "test:folded-privacy": "bun scripts/test-folded-privacy.ts",
-    "test:fair-round": "bun scripts/test-fair-round.ts"
+    "test:fair-round": "bun scripts/test-fair-round.ts",
+    "test:client-seed": "bun scripts/test-client-seed.ts",
+    "test:live-fairness": "bun scripts/test-live-fairness.ts",
+    "test:fair-archive": "node scripts/with-test-postgres.mjs bun --conditions=react-server scripts/test-fair-archive.ts",
+    "smoke:browser": "node scripts/with-test-postgres.mjs node scripts/smoke-production.mjs --browser"
   },
   "dependencies": {
     "@fontsource/ibm-plex-mono": "^5.3.0",
@@ -106,6 +110,7 @@
     "zustand": "^5.1.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.65.0",
     "@tailwindcss/postcss": "^4.3.5",
     "@types/pg": "^8.23.1",
     "@types/react": "^19.3.0",

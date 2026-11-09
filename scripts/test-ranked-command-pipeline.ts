@@ -1,3 +1,4 @@
+import {completeFairExchange} from './fixtures/complete-fair-exchange';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {NextRequest} from 'next/server';
@@ -22,6 +23,7 @@ try{
   const response=await roomApi(intent(),context);assert.equal(response.status,200);const original=await response.json();
   assert.deepEqual(await (await roomApi(intent(),context)).json(),original);
  }
+ await completeFairExchange(code,players,async(id,revision,command)=>(await roomApi(request(id,`live/${code}`,{revision,command}),context)).status);
  let snapshot:LiveSnapshot=(await readLiveRoom(code,players[0].id))!;
  const firstSeat=snapshot.me;
  for(let guard=0;guard<40;guard++){

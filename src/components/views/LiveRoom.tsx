@@ -1,5 +1,7 @@
 "use client";
 
+import { nextClientSeedCommand } from "@/lib/poker/client-seed";
+
 import Link from "next/link";
 import {postGameCommand} from "@/lib/game-command";
 import { useRouter } from "next/navigation";
@@ -211,6 +213,19 @@ function LiveRoom({ code }: { code: string }) {
     return () => { controller.abort(); clearTimeout(reconnect); stream?.close(); };
   }, [attempt, code]);
 
+  useEffect(() => {
+    if(!room?.fair||room.status!=="waiting"||room.me<0||busy||actionError)return;
+    const owner=useFelt.getState().profile?.id;if(!owner)return;
+    let cancelled=false;
+    void Promise.resolve().then(()=>{
+      if(cancelled)return;
+      let storage:Storage|undefined;try{storage=window.sessionStorage;}catch{}
+      const command=nextClientSeedCommand(room.fair!,owner,storage);
+      if(command)return send(command);
+    }).catch(error=>{if(!cancelled)setActionError(error instanceof Error?error.message:"Could not prepare the private deal.");});
+    return()=>{cancelled=true;};
+  },[room?.revision,room?.fair?.phase,busy,actionError]);
+
   async function send(command: LiveCommand) {
     if (!room || busy) return;
     setActionError("");
@@ -219,7 +234,7 @@ function LiveRoom({ code }: { code: string }) {
       const response = await postGameCommand(`/api/live/${encodeURIComponent(code)}`, { revision: room.revision, command }, {owner:useFelt.getState().profile?.id});
       const data = await response.json();
       if (data.room) setRoom((current) => !current || data.room.revision >= current.revision ? data.room : current);
-      if (!response.ok) setActionError(data.error ?? "Could not send your move.");
+      if (!response.ok && !(response.status===409 && (command.type==="seed-commit"||command.type==="seed-reveal") && data.room)) setActionError(data.error ?? "Could not send your move.");
     } catch {
       setActionError("Connection lost. Wait for the table to reconnect and try again.");
     } finally {
@@ -304,7 +319,7 @@ function LiveRoom({ code }: { code: string }) {
                 {room.me < 0 ? (
                   <TactileButton variant="accent" className="h-11" disabled={busy || room.seats.length >= LIVE_CAPACITY} onClick={() => void send({ type: "join" })}>Take a seat</TactileButton>
                 ) : room.me === room.host ? (
-                  <TactileButton variant="accent" className="h-11" disabled={busy || room.seats.length < 2} onClick={() => void send({ type: "start" })}>Start game</TactileButton>
+                  <TactileButton variant="accent" className="h-11" disabled={busy || room.seats.length < 2 || Boolean(room.fair && room.fair.phase!=="waiting")} onClick={() => void send({ type: "start" })}>{room.fair && room.fair.phase!=="waiting"?"Preparing private deal…":"Start game"}</TactileButton>
                 ) : <span className="text-sm text-ink-soft">Waiting for the host to start the game.</span>}
                 {room.me >= 0 && <TactileButton variant="ghost" className="h-11" disabled={busy} onClick={() => void send({ type: "leave" })}>Leave seat</TactileButton>}
               </div>
@@ -312,7 +327,7 @@ function LiveRoom({ code }: { code: string }) {
           ) : room.game ? (
             <LiveFelt room={room} clockOffset={clockOffset} compact={compact} busy={busy} send={send} connected={connected} error={actionError} />
           ) : <Link href="/live" className="elo-link">Create or join another room</Link>}
-          {!compactGame && actionError && <p role="alert" className="mt-3 text-sm text-carmine-deep">{actionError}</p>}
+          {!compactGame && actionError && <div role="alert" className="mt-3 text-sm text-carmine-deep">{actionError}{room.fair && room.status==='waiting' && <button className="ml-3 underline" onClick={()=>setActionError("")}>Retry preparation</button>}</div>}
         </>
       )}
     </main>
@@ -359,7 +374,8 @@ function RankedReady({room,busy,send,clockOffset}:{room:LiveSnapshot;busy:boolea
   const accepted=proposal.accepted[room.me];
   return <section className="elo-panel space-y-4 p-5 sm:p-7" aria-label="Ranked ready check">
     <h2 className="font-display text-3xl">Confirm your ranked match</h2>
-    <p className="text-sm text-ink-soft">Confirm within <span className="tnum">{seconds}</span> seconds. Cards are dealt when both players confirm.</p>
+    <p className="text-sm text-ink-soft">Confirm within <span className="tnum">{seconds}</span> seconds. Both confirmations are followed by a private deal check before cards are dealt.</p>
+    {room.fair && ['committing','revealing'].includes(room.fair.phase) && <p role="status" className="text-sm text-ink-soft">Preparing the private deal…</p>}
     <ul className="space-y-2">{room.seats.map((seat,index)=><li key={index}>{seat.name} · {proposal.accepted[index]?'Confirmed':'Waiting'}</li>)}</ul>
     <div className="flex flex-wrap gap-3">
       <TactileButton variant="accent" disabled={busy||accepted||seconds===0} onClick={()=>void send({type:'ready',accept:true})}>{accepted?'Confirmed':'I’m ready'}</TactileButton>
@@ -548,6 +564,7 @@ function LiveDetails({ game }: { game: NonNullable<LiveSnapshot["game"]> }) {
         <summary className="cursor-pointer text-sm font-semibold">Deal commitment</summary>
         <p className="mt-2 break-all font-mono text-[10px] text-ink-soft">{game.deckCommit}</p>
         <p className="mt-2 text-xs text-ink-soft">Hidden cards stay private. This commitment alone does not prove a fair shuffle.</p>
+        {game.fairProof && <Link className="elo-link mt-3 inline-block text-xs" href={`/verify/${game.fairProof.handId}`}>Verify disclosed cards</Link>}
       </details>
       <section className="elo-panel p-4">
         <h2 className="font-display text-2xl">Hand log</h2>

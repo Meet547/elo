@@ -1,3 +1,4 @@
+import {completeFairExchange} from './fixtures/complete-fair-exchange';
 import assert from 'node:assert/strict';
 import {randomBytes,randomUUID} from 'node:crypto';
 import {NextRequest} from 'next/server';
@@ -15,6 +16,7 @@ async function start(){
  await updateRankedQueue(players[0].id,'join');const queue=await updateRankedQueue(players[1].id,'join');
  if(queue?.status!=='matched')throw new Error('Worker fixture did not match');
  for(const player of players){const room:LiveSnapshot=(await readLiveRoom(queue.code,player.id))!;assert.equal((await commandLiveRoom(queue.code,player.id,room.revision,{type:'ready',accept:true})).status,200);}
+ await completeFairExchange(queue.code,players);
  const row=await db.liveRoom.findUniqueOrThrow({where:{code:queue.code}});
  const table=JSON.parse(row.state);table.nextAt=Date.now()-30*60_000;
  await db.liveRoom.update({where:{code:row.code},data:{state:JSON.stringify(table),nextDeadlineAt:new Date(table.nextAt)}});

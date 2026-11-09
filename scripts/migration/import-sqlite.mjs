@@ -44,7 +44,7 @@ export async function targetSummary(client){
 }
 export async function importLegacy(client,data){
  return client.$transaction(async tx=>{
-  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count(),tx.commandReceipt.count()]);
+  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count(),tx.commandReceipt.count(),tx.fairHand.count()]);
   if(counts.some(Boolean))throw new Error('Import requires an empty application database. No existing data will be overwritten.');
   if(data.players.length)await tx.player.createMany({data:data.players});
   if(data.sessions.length)await tx.session.createMany({data:data.sessions});

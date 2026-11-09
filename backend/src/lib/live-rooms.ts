@@ -7,6 +7,7 @@ import {type DatabaseClient} from "./unit-of-work";
 import { commitRankedRoom } from "./ranked-settlement";
 import {
   advanceLiveTable,
+  refreshFairEvidence,
   applyLiveCommand,
   newLiveTable,
   publicLiveTable,
@@ -37,7 +38,7 @@ export async function createLiveRoom(playerId: string, client:DatabaseClient=db)
   if (!player) return null;
 
   await client.liveRoom.deleteMany({ where: { matchId:null, expiresAt: { lte: new Date() } } });
-  const table = newLiveTable(player);
+  const table = newLiveTable(player,true);
   const row = await client.liveRoom.create({
     data: roomRecord(table),
   });
@@ -46,6 +47,7 @@ export async function createLiveRoom(playerId: string, client:DatabaseClient=db)
 
 /** Room revisions and ranked transitions are compared inside their database writes. */
 async function commit(row: LiveRoom, table: LiveTable, client:DatabaseClient=db) {
+  refreshFairEvidence(table);
   if (table.ranked) return commitRankedRoom(client, row, table);
   return (await client.liveRoom.updateMany({
     where: { code: row.code, revision: row.revision },
