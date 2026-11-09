@@ -1,6 +1,6 @@
 import "server-only";
 
-import { PROVISIONAL_SESSIONS } from "@/lib/rating";
+import { currentDeviation, PROVISIONAL_SESSIONS } from "@/lib/rating";
 import { createHmac } from "node:crypto";
 import { isIP } from "node:net";
 import { Prisma } from "@prisma/client";
@@ -59,9 +59,10 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand,
         await tx.rankedSeat.deleteMany({ where: { roomCode: null, seenAt: { lt: cutoff } } });
         const player = await tx.player.findUnique({
           where: { id: playerId, isSimulated: false, deletedAt: null },
-          select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true, rankedPlacements: true, nameKey: true, identities: { select: { provider: true } } },
+          select: { id: true, name: true, rating: true, rd: true, volatility: true, ratedAt: true, createdAt: true, rated: true, rankedPlacements: true, nameKey: true, identities: { select: { provider: true } } },
         });
         if (!player) return null;
+        player.rd = currentDeviation(player, now.getTime());
         if (command !== "cancel") {
           if (!player.identities.length) throw new RankedEligibilityError("Connect a verified account before joining ranked.");
           if (!player.nameKey) throw new RankedEligibilityError("Choose an available unique table name in your profile first.");
@@ -107,9 +108,9 @@ export async function updateRankedQueue(playerId: string, command: QueueCommand,
             identities: { some: {} },
             rankedPlacements: poolName === "PLACEMENT" ? { lt: PROVISIONAL_SESSIONS } : { gte: PROVISIONAL_SESSIONS },
           },
-          select: { id: true, name: true, rating: true, rd: true, volatility: true, rated: true },
+          select: { id: true, name: true, rating: true, rd: true, volatility: true, ratedAt: true, createdAt: true, rated: true },
         });
-        const byId = new Map(opponents.map(opponent => [opponent.id, opponent]));
+        const byId = new Map(opponents.map(opponent => [opponent.id, { ...opponent, rd: currentDeviation(opponent, now.getTime()) }]));
         const eligible = pool.flatMap(seat => {
           const opponent = byId.get(seat.playerId);
           return opponent ? [{ ...seat, rating: opponent.rating, rd: opponent.rd }] : [];

@@ -3,7 +3,7 @@ import { db, dbEnabled } from "@/lib/db";
 import { realPlayerRank } from "../../../lib/player-rank";
 import { displayName } from "../../../lib/display-name";
 import { Prisma } from "@prisma/client";
-import { START_RATING } from "@/lib/rating";
+import { currentDeviation, START_RATING } from "@/lib/rating";
 import { rateLimit, tooMany } from "@/lib/rate-limit";
 import { clearSessionCookie, sessionPlayer, setSessionCookie } from "@/lib/session";
 
@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
     clearSessionCookie(res);
     return res;
   }
-  return NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
+  return NextResponse.json({ player: { ...player, rd: Math.round(currentDeviation(player)), rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
 }
 
 /** POST /api/profile { name } — claim a seat on the ladder. */
@@ -41,7 +41,7 @@ export async function POST(req: NextRequest) {
   const existingId = await sessionPlayer(req);
   if (existingId) {
     const existing = await db.player.findUnique({ where: { id: existingId, isSimulated: false } });
-    if (existing) return NextResponse.json({ player: { ...existing, rank: await realPlayerRank(db, existing), provenance: "REAL" } }, { headers: NO_STORE });
+    if (existing) return NextResponse.json({ player: { ...existing, rd: Math.round(currentDeviation(existing)), rank: await realPlayerRank(db, existing), provenance: "REAL" } }, { headers: NO_STORE });
   }
 
   const limit = await rateLimit(req, "profile:create", 8, 10 * 60_000);
@@ -65,7 +65,7 @@ export async function POST(req: NextRequest) {
     throw error;
   }
 
-  const res = NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
+  const res = NextResponse.json({ player: { ...player, rd: Math.round(currentDeviation(player)), rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
   await setSessionCookie(res, player.id);
   return res;
 }
@@ -79,7 +79,7 @@ export async function PATCH(req: NextRequest) {
   try {
     const normalized = displayName((await req.json())?.name);
     const player = await db.player.update({ where: { id }, data: normalized });
-    return NextResponse.json({ player: { ...player, rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
+    return NextResponse.json({ player: { ...player, rd: Math.round(currentDeviation(player)), rank: await realPlayerRank(db, player), provenance: "REAL" } }, { headers: NO_STORE });
   } catch (error) {
     if (error instanceof Prisma.PrismaClientKnownRequestError) {
       if (error.code === "P2002") return NextResponse.json({ error: "That table name is already taken." }, { status: 409, headers: NO_STORE });

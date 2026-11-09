@@ -28,6 +28,7 @@ model Player {
   streak      Int                @default(0)
   isSimulated Boolean            @default(false) @map("isRival")
   createdAt   DateTime           @default(now())
+  ratedAt     DateTime?
   lastSeen    DateTime           @default(now())
   results     Session[]
   matchSeats  MatchParticipant[]
@@ -64,6 +65,7 @@ model Session {
   createdAt    DateTime @default(now())
 
   @@unique([matchId, playerId])
+  @@index([playerId, createdAt])
 }
 
 model LiveRoom {
@@ -236,4 +238,14 @@ model FairHand {
   completedAt DateTime?
   createdAt DateTime @default(now())
   @@index([roomCode, handNo])
+}
+
+model RatingDaily {
+  day           DateTime @id @db.Date
+  capturedAt    DateTime
+  playerCount   Int
+  ratingTotal   BigInt
+  accountingTotal BigInt
+  ledgerDelta   BigInt
+  unexplained   BigInt?
 }

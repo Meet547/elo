@@ -97,3 +97,7 @@ The hand archive transactionally stores separate public membership evidence and 
 ## D024 — bounded searches and queue delivery
 
 Ranked selection uses both players’ rating deviation, wait and pool. A three-minute cap makes the end of a search explicit. Recent pair cooldowns reduce repetitive matches, while a shared network remains a soft preference. The queue uses the existing Postgres listener for committed assignment notifications and rechecks its current state on reconnect.
+
+## D025 — recorded lifetime statistics and inactivity periods
+
+The owner’s history endpoint calculates totals over all recorded rows and returns them alongside the latest 60. The chart plots actual settlement times. Match results remain immediate rating periods. Complete inactive 24-hour intervals increase only deviation. A UTC daily snapshot reconciles cumulative recorded movement and initial ratings, with unexplained drift logged for review.

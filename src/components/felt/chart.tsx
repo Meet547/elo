@@ -4,7 +4,7 @@ import { useEffect, useId, useRef, useState, type CSSProperties, type KeyboardEv
 import { animate, motion, useMotionValue, useReducedMotion, useTransform, type MotionStyle } from "framer-motion";
 import { RefreshCw } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { pullDistance, ratingCurve, ratingIndex, ratingReading, ratingWindow, REFRESH_THRESHOLD, type GraphPoint } from "@/lib/rating-chart";
+import { pullDistance, ratingCurve, ratingTimeIndex, ratingReading, ratingWindow, REFRESH_THRESHOLD, type GraphPoint } from "@/lib/rating-chart";
 import styles from "./rating-chart.module.css";
 
 export type { GraphPoint } from "@/lib/rating-chart";
@@ -12,7 +12,7 @@ export type { GraphPoint } from "@/lib/rating-chart";
 const WINDOWS = [
   { label: "10 sessions", count: 10 },
   { label: "30 sessions", count: 30 },
-  { label: "All", count: null },
+  { label: "Latest 60", count: null },
 ] as const;
 const HEIGHT = 160;
 const fmt = (value: number) => value.toLocaleString("en-US");
@@ -71,7 +71,7 @@ export function RatingGraph({
 
   const series = ratingWindow(points, WINDOWS[windowIndex].count);
   const reading = ratingReading(series, scrub);
-  const curve = ratingCurve(series.map(point => point.value), HEIGHT);
+  const curve = ratingCurve(series.map(point => point.value), HEIGHT, series.map(point => Date.parse(point.at)));
   const selected = reading ? curve.points[reading.index] : null;
   const last = series.length - 1;
   const upward = !series.length || series[last].value >= series[0].value;
@@ -114,7 +114,7 @@ export function RatingGraph({
   function readAt(clientX: number) {
     if (!plot.current || !series.length || busy.current) return;
     const rect = plot.current.getBoundingClientRect();
-    setScrub(ratingIndex(clientX, rect.left, rect.width, series.length));
+    setScrub(ratingTimeIndex(clientX, rect.left, rect.width, curve.points.map(point => point.x)));
   }
 
   function start(event: PointerEvent<HTMLDivElement>) {

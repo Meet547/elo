@@ -39,7 +39,7 @@ async function writeResult(tx: Prisma.TransactionClient, matchId: string, table:
       cashes: { increment: seat.place === 1 ? 1 : 0 }, netChips: { increment: seat.net },
       biggestPot: Math.max(me.biggestPot, seat.biggestPot),
       streak: seat.place === 0 ? 0 : seat.place === 1 ? Math.max(0, me.streak) + 1 : Math.min(0, me.streak) - 1,
-      lastSeen: new Date(),
+      lastSeen: new Date(), ratedAt: new Date(),
     } });
     await tx.session.create({ data: {
       matchId, mode: 'RANKED', playerId: me.id, hands: playedHands, seats: 2,

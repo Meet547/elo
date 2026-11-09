@@ -17,7 +17,7 @@ import { useMemo, useState } from "react";
 const usd = (n: number) => `$${Math.abs(n).toLocaleString("en-US")}`;
 
 function sessionLine(s: SessionRow): string {
-  if (s.place === 0) return "Ranked draw · 10 hands";
+  if (s.place === 0 && s.mode === "RANKED") return "Ranked draw · 10 hands";
   if (s.exit) return s.exit;
   if (s.place === 1) return "took the whole table down";
   if (s.bestHand) return `best hand — ${s.bestHand}`;
@@ -26,7 +26,7 @@ function sessionLine(s: SessionRow): string {
   return "walked out even · table closed";
 }
 
-function Tile({ k, v, tone }: { k: string; v: string; tone?: "money" | "carmine" }) {
+function Tile({ k, v, note, tone }: { k: string; v: string; note?: string; tone?: "money" | "carmine" }) {
   return (
     <div className="rounded-xl border border-hairline bg-paper px-3.5 py-2.5">
       <div
@@ -39,17 +39,18 @@ function Tile({ k, v, tone }: { k: string; v: string; tone?: "money" | "carmine"
         {v}
       </div>
       <div className="mt-1 font-mono text-[8.5px] uppercase text-ink-faint">{k}</div>
+      {note && <p className="mt-1 text-[10px] text-ink-soft">{note}</p>}
     </div>
   );
 }
 
 export function ProfileView() {
-  const { profile, sessions, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
+  const { profile, sessions, profileStatistics, sessionsLoading, ladder, seatTable, fetchSessions } = useFelt();
   const [filter, setFilter] = useState<"all" | "cashes" | "losses">("all");
 
   const meRank = profile?.rank ?? ladder.find((p) => p.isMe)?.rank;
 
-  const chrono = useMemo(() => [...sessions].reverse(), [sessions]);
+  const chrono = useMemo(() => sessions.filter(session => !session.mode || session.mode === "RANKED" || session.mode === "LEGACY").reverse(), [sessions]);
   const points: GraphPoint[] = useMemo(() => {
     if (chrono.length === 0) return [];
     return [
@@ -58,26 +59,10 @@ export function ProfileView() {
     ];
   }, [chrono]);
 
-  const agg = useMemo(() => {
-    const played = sessions.length;
-    const placeCounts = [1, 2, 3, 4, 5, 6].map((p) => sessions.filter((s) => s.place === p).length);
-    const best = sessions.reduce<SessionRow | null>((m, s) => (!m || s.net > m.net ? s : m), null);
-    const worst = sessions.reduce<SessionRow | null>((m, s) => (!m || s.net < m.net ? s : m), null);
-    const potsWon = sessions.reduce((n, s) => n + s.potsWon, 0);
-    const losses = sessions.filter((s) => s.net < 0);
-    const lossMode = placeCounts
-      .map((c, i) => ({ place: i + 1, c: losses.filter((s) => s.place === i + 1).length }))
-      .sort((a, b) => b.c - a.c)[0];
-    return {
-      played,
-      placeCounts,
-      best,
-      worst,
-      potsWon,
-      cashRate: played ? Math.round((profile?.cashes ?? 0) / played * 100) : 0,
-      lossMode: lossMode && lossMode.c > 0 ? lossMode : null,
-    };
-  }, [sessions, profile?.cashes]);
+  const stats = profileStatistics;
+  const finishCounts = stats?.finishes ?? [];
+  const mostCommonFinish = Math.max(1, ...finishCounts.map(finish => finish.count));
+  const firstRate = stats?.sessions ? Math.round(stats.firsts / stats.sessions * 100) : 0;
 
   if (!profile) return null;
 
@@ -132,34 +117,32 @@ export function ProfileView() {
 
         <aside className="flex flex-col gap-5">
           <section className="grid grid-cols-2 gap-2">
-            <Tile k="hands" v={profile.hands.toLocaleString("en-US")} />
-            <Tile k="firsts" v={profile.cashes.toLocaleString("en-US")} tone={profile.cashes > 0 ? "money" : undefined} />
-            <Tile k="cash rate" v={`${agg.cashRate}%`} />
-            <Tile k="pots won" v={agg.potsWon.toLocaleString("en-US")} />
-            <Tile k="biggest pot" v={profile.biggestPot > 0 ? usd(profile.biggestPot) : "—"} />
+            <Tile k="recorded hands" v={stats?.hands.toLocaleString("en-US") ?? "—"} />
+            <Tile k="firsts" v={stats?.firsts.toLocaleString("en-US") ?? "—"} />
+            <Tile k="first-place rate" v={stats?.sessions ? `${firstRate}%` : "—"} note={stats?.sessions ? `${stats.firsts} of ${stats.sessions} sessions` : undefined} />
+            <Tile k="pots won" v={stats?.potsWon.toLocaleString("en-US") ?? "—"} />
+            <Tile k="biggest pot" v={stats?.biggestPot ? usd(stats.biggestPot) : "—"} />
             <Tile
               k="best session"
-              v={agg.best && agg.best.net > 0 ? `+${usd(agg.best.net)}` : "—"}
-              tone={agg.best && agg.best.net > 0 ? "money" : undefined}
+              v={stats?.bestNet != null && stats.bestNet > 0 ? `+${usd(stats.bestNet!)}` : "—"}
+              tone={stats?.bestNet != null && stats.bestNet > 0 ? "money" : undefined}
             />
             <Tile
               k="worst session"
-              v={agg.worst && agg.worst.net < 0 ? `−${usd(agg.worst.net)}` : "—"}
-              tone={agg.worst && agg.worst.net < 0 ? "carmine" : undefined}
+              v={stats?.worstNet != null && stats.worstNet < 0 ? `−${usd(stats.worstNet!)}` : "—"}
+              tone={stats?.worstNet != null && stats.worstNet < 0 ? "carmine" : undefined}
             />
             <Tile
-              k="all-time net"
-              v={`${profile.netChips >= 0 ? "+" : "−"}${usd(profile.netChips)}`}
-              tone={profile.netChips > 0 ? "money" : profile.netChips < 0 ? "carmine" : undefined}
+              k="recorded lifetime net"
+              v={stats ? `${stats.net >= 0 ? "+" : "−"}${usd(stats.net)}` : "—"}
+              tone={(stats?.net ?? 0) > 0 ? "money" : (stats?.net ?? 0) < 0 ? "carmine" : undefined}
             />
           </section>
 
           <section className="elo-panel p-5">
-            <h3 className="font-display text-[16px] leading-none">The finishes</h3>
+            <h3 className="font-display text-[16px] leading-none">Lifetime recorded finishes</h3>
             <div className="mt-4 space-y-2.5">
-              {agg.placeCounts.map((c, i) => {
-                const place = i + 1;
-                const max = Math.max(1, ...agg.placeCounts);
+              {finishCounts.map(({ place, count }) => {
                 return (
                   <div key={place} className="flex items-center gap-3">
                     <span
@@ -168,7 +151,7 @@ export function ProfileView() {
                         place === 1 ? "font-semibold text-money" : "text-ink-faint",
                       )}
                     >
-                      {ordinal(place)}
+                      {place === 0 ? "Draw" : ordinal(place)}
                     </span>
                     <div className="h-2 flex-1 overflow-hidden rounded-full bg-canvas">
                       <div
@@ -176,20 +159,14 @@ export function ProfileView() {
                           "h-full rounded-full transition-[width] duration-700",
                           place === 1 ? "bg-money" : place <= 3 ? "bg-ink/75" : "bg-hairline-dark",
                         )}
-                        style={{ width: `${(c / max) * 100}%` }}
+                        style={{ width: `${(count / mostCommonFinish) * 100}%` }}
                       />
                     </div>
-                    <span className="tnum w-5 text-right font-mono text-[10px] text-ink-soft">{c}</span>
+                    <span className="tnum w-5 text-right font-mono text-[10px] text-ink-soft">{count}</span>
                   </div>
                 );
               })}
             </div>
-            {agg.lossMode ? (
-              <p className="mt-4 border-t border-dashed border-ink/15 pt-3 font-mono text-[10px] leading-relaxed text-ink-faint">
-                most losses end {ordinal(agg.lossMode.place)} — {agg.lossMode.c} of{" "}
-                {sessions.filter((s) => s.net < 0).length} so far
-              </p>
-            ) : null}
           </section>
         </aside>
       </div>
@@ -197,7 +174,7 @@ export function ProfileView() {
       {/* ----------------------------------------------------- the ledger */}
       <section className="elo-panel mt-6 overflow-hidden">
         <div className="flex flex-wrap items-center justify-between gap-x-3 gap-y-1 border-b border-hairline px-4 py-2.5 sm:px-5">
-          <h3 className="font-display text-2xl leading-none">Session ledger</h3>
+          <h3 className="font-display text-2xl leading-none">Latest 60 recorded sessions</h3>
           <div className="flex items-center gap-1">
             {(
               [
@@ -271,6 +248,8 @@ export function ProfileView() {
                 </div>
                 <div className="mt-1 truncate pl-11 font-mono text-[10px] text-ink-faint">
                   {sessionLine(s)}
+                  {s.bestSeenHand && <p>Best seen · {s.bestSeenHand}</p>}
+                  {s.bestWinningHand && <p>Best winning · {s.bestWinningHand}</p>}
                 </div>
               </div>
             );
@@ -281,7 +260,7 @@ export function ProfileView() {
       <AccountAccess />
 
       <p className="mt-4 text-center font-mono text-[9px] uppercase text-ink-faint">
-        every session is one glicko-2 period · all six seats rated at once
+        each ranked match updates both players from their pre-match ratings
       </p>
     </div>
   );

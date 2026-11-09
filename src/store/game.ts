@@ -114,6 +114,9 @@ export interface Profile {
 /** One settled session from the ledger — the raw material of the profile. */
 export interface SessionRow {
   id: string;
+  mode?: "RANKED" | "LEGACY" | "PRIVATE" | "PRACTICE";
+  bestSeenHand?: string | null;
+  bestWinningHand?: string | null;
   hands: number;
   net: number;
   place: number;
@@ -212,6 +215,7 @@ interface FeltState {
   wantsLeave: boolean;
 
   sessions: SessionRow[];
+  profileStatistics: import("@/lib/profile-statistics").ProfileStatistics | null;
   sessionsLoading: boolean;
 }
 
@@ -316,6 +320,7 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
   wantsLeave: false,
 
   sessions: [],
+  profileStatistics: null,
   sessionsLoading: false,
 
   // ------------------------------------------------------------------ boot
@@ -563,8 +568,8 @@ export const useFelt = create<FeltState & FeltActions>((set, get) => ({
         fetch("/api/profile", { cache: "no-store" }),
       ]);
       if (!history.ok || !identity.ok) throw new Error("Could not refresh rating history.");
-      const [{ sessions }, { player }] = await Promise.all([history.json(), identity.json()]);
-      set({ sessions, profile: player });
+      const [{ sessions, statistics, ownerId }, { player }] = await Promise.all([history.json(), identity.json()]);
+      if (get().profile?.id === player.id && ownerId === player.id) set({ sessions, profileStatistics: statistics, profile: player });
     } finally {
       set({ sessionsLoading: false });
     }

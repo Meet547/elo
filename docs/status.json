@@ -80,10 +80,14 @@
       "reason": "Ready checks, presence/forfeit/void policy, actual worker, TTL and atomic command receipts verified locally; sleeping free-host availability remains an external limitation"
     },
     "F7": {
-      "status": "open",
+      "status": "fixed-on-branch",
       "owner": "Codex",
       "workstream": "WS10",
-      "evidence": "src/components/views/Profile.tsx:76; backend/src/app/api/history/route.ts:25; 80/60 displays 133%"
+      "evidence": "src/components/views/Profile.tsx:76; backend/src/app/api/history/route.ts:25; 80/60 displays 133%",
+      "tests": [
+        "scripts/test-rating-statistics.ts"
+      ],
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
     },
     "F8": {
       "status": "open",
@@ -142,11 +146,10 @@
       "workstream": "WS5/WS10",
       "evidence": "src/lib/poker/live-table.ts:95; src/store/game.ts:743; assignment only when empty, no score comparison",
       "tests": [
-        "scripts/test-engine-rules.ts",
-        "scripts/test-engine-invariants.ts"
+        "scripts/test-rating-statistics.ts"
       ],
       "commitSubject": "fix(poker): enforce reopening rules and preserve side-pot chips",
-      "reason": "Scored best-seen and best-winning mechanics implemented; private/practice history persistence remains F8/WS12"
+      "reason": "Owner lifetime aggregates, explicit rate denominator, and distinct recorded best-seen and best-winning labels."
     },
     "A1": {
       "status": "open",

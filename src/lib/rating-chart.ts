@@ -18,6 +18,12 @@ export function ratingIndex(clientX: number, left: number, width: number, length
   return Math.round(clamp((clientX - left) / (width || 1), 0, 1) * Math.max(0, length - 1));
 }
 
+export function ratingTimeIndex(clientX: number, left: number, width: number, positions: number[]) {
+  const target = clamp((clientX - left) / (width || 1), 0, 1) * 100;
+  return positions.reduce((closest, position, index) =>
+    Math.abs(position - target) <= Math.abs(positions[closest] - target) ? index : closest, 0);
+}
+
 export function ratingReading(points: GraphPoint[], index: number | null) {
   if (!points.length) return null;
   const selected = index === null ? points.length - 1 : clamp(Math.round(index), 0, points.length - 1);
@@ -33,17 +39,21 @@ export function pullDistance(raw: number, resistance = 50) {
 }
 
 /** A monotone cubic goes through every reading without inventing peaks or dips. */
-export function ratingCurve(values: number[], height = 160) {
+export function ratingCurve(values: number[], height = 160, timestamps?: number[]) {
   if (!values.length) return { path: "", points: [] };
   const low = Math.min(...values);
   const high = Math.max(...values);
+  const timed = timestamps?.length === values.length && timestamps.every((time, index) =>
+    Number.isFinite(time) && (index === 0 || time >= timestamps[index - 1]));
+  const start = timed ? timestamps[0] : 0;
+  const span = timed ? timestamps[timestamps.length - 1] - start : 0;
   const points = values.map((value, index) => ({
-    x: values.length === 1 ? 50 : index / (values.length - 1) * 100,
+    x: timed ? (span ? (timestamps[index] - start) / span * 100 : 50) : values.length === 1 ? 50 : index / (values.length - 1) * 100,
     y: high === low ? height / 2 : height - 16 - (value - low) / (high - low) * (height - 32),
   }));
   if (points.length === 1) return { path: "", points };
   const slopes = points.slice(1).map((point, index) =>
-    (point.y - points[index].y) / (point.x - points[index].x));
+    point.x === points[index].x ? 0 : (point.y - points[index].y) / (point.x - points[index].x));
   const tangents = points.map((_, index) => {
     if (index === 0) return slopes[0];
     if (index === points.length - 1) return slopes[slopes.length - 1];
@@ -56,6 +66,10 @@ export function ratingCurve(values: number[], height = 160) {
   points.slice(1).forEach((point, index) => {
     const previous = points[index];
     const step = (point.x - previous.x) / 3;
+    if (step === 0) {
+      path += ` L${n(point.x)} ${n(point.y)}`;
+      return;
+    }
     path += ` C${n(previous.x + step)} ${n(previous.y + tangents[index] * step)} ${n(point.x - step)} ${n(point.y - tangents[index + 1] * step)} ${n(point.x)} ${n(point.y)}`;
   });
   return { path, points };

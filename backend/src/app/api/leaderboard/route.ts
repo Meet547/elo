@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { PROVISIONAL_SESSIONS } from '@/lib/rating';
+import { currentDeviation, PROVISIONAL_SESSIONS } from '@/lib/rating';
 import { rateLimit, tooMany } from '@/lib/rate-limit';
 import { sessionPlayer } from '@/lib/session';
 import { realPlayerRank } from '../../../lib/player-rank';
@@ -21,11 +21,11 @@ export async function GET(req: NextRequest) {
   const rank = me ? await realPlayerRank(db, me) : null;
   return NextResponse.json({
     ladder: players.map((player, index) => ({
-      id: player.id, name: player.name, rating: player.rating, rd: Math.round(player.rd), rated: player.rated,
+      id: player.id, name: player.name, rating: player.rating, rd: Math.round(currentDeviation(player)), rated: player.rated,
       peak: player.peak, hands: player.hands, cashes: player.cashes, streak: player.streak,
       isMe: player.id === playerId, rank: index + 1, isSimulated: false, provenance: 'REAL',
     })),
-    me: me ? { ...me, rd: Math.round(me.rd), rank, provenance: 'REAL', provisional: me.rated < PROVISIONAL_SESSIONS } : null,
+    me: me ? { ...me, rd: Math.round(currentDeviation(me)), rank, provenance: 'REAL', provisional: me.rated < PROVISIONAL_SESSIONS } : null,
     wire: wire.map(session => ({
       id: session.id, name: session.player.name, place: session.place, hands: session.hands,
       net: session.net, seats: session.seats, ratingBefore: session.ratingBefore, ratingAfter: session.ratingAfter,

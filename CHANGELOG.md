@@ -85,3 +85,9 @@
 - Match on mutual RD-based ranges and prefer compatible longer searches. Apply pair cooldowns and a soft shared-network signal.
 - Push committed queue assignments over authenticated SSE and end searches at three minutes.
 - Add a 10,000-entry simulation and Postgres integration coverage for notification, cooldown, expiration and revocation.
+
+## WS10 — rating records
+
+- Calculate lifetime profile statistics on the server and show the denominator for first-place rate.
+- Plot and scrub recorded ratings by actual settlement time.
+- Apply inactivity growth to RD in profile, ladder and ranked snapshots. Record daily rating drift and test the raw Glicko-2 reference vector.

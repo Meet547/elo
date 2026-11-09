@@ -1,5 +1,6 @@
 import 'server-only';
 import {db} from './db';
+import {checkDailyRating} from './rating-audit';
 import {processRoomDeadline} from './live-rooms';
 import {transitionMatch} from './match-state';
 import {allowsMatchTransition,type MatchPhase} from '@/lib/poker/match-state';
@@ -36,5 +37,6 @@ export async function processDeadlineBatch(now=Date.now()){
   db.commandReceipt.deleteMany({where:{expiresAt:{lte:date}}}),
   db.roomEvent.deleteMany({where:{createdAt:{lt:new Date(now-86400_000)}}}),
  ]);
+ await checkDailyRating(now);
  return {processed,expired:expired.length,queueReleased:queue.count,limitsRemoved:limits.count,sessionsRemoved:sessions.count,oauthRemoved:oauth.count,receiptsRemoved:receipts.count,eventsRemoved:events.count,batchLimited:due.length===50};
 }

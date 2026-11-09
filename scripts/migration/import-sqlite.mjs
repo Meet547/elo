@@ -44,9 +44,15 @@ export async function targetSummary(client){
 }
 export async function importLegacy(client,data){
  return client.$transaction(async tx=>{
-  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count(),tx.commandReceipt.count(),tx.fairHand.count()]);
+  const counts=await Promise.all([tx.player.count(),tx.session.count(),tx.liveRoom.count(),tx.rankedSeat.count(),tx.match.count(),tx.authSession.count(),tx.externalIdentity.count(),tx.oAuthAttempt.count(),tx.rateWindow.count(),tx.commandReceipt.count(),tx.fairHand.count(),tx.ratingDaily.count()]);
   if(counts.some(Boolean))throw new Error('Import requires an empty application database. No existing data will be overwritten.');
-  if(data.players.length)await tx.player.createMany({data:data.players});
+  const ratedAt = new Map();
+  for (const session of data.sessions) {
+    if (!ratedAt.has(session.playerId) || session.createdAt > ratedAt.get(session.playerId)) {
+      ratedAt.set(session.playerId, session.createdAt);
+    }
+  }
+  if(data.players.length)await tx.player.createMany({data:data.players.map(player=>({...player,ratedAt:ratedAt.get(player.id)}))});
   if(data.sessions.length)await tx.session.createMany({data:data.sessions});
   if(data.rooms.length)await tx.liveRoom.createMany({data:data.rooms});
   if(data.queue.length)await tx.rankedSeat.createMany({data:data.queue});
